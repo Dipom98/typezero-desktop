@@ -7,7 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-package-lock.json
+
 
 node_modules
 dist
@@ -43,5 +43,5 @@ tts_env/
 tts/
 functions/node_modules/
 tts_stdout.log
-bun.lock
+
 sponsor-images/
