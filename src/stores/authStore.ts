@@ -51,8 +51,10 @@ export const useAuthStore = create<AuthState>()(
 
             validateLicense: async (email: string) => {
                 try {
+                    // Force lowercase to ensure we match the document ID in Firestore exactly
+                    const normalizedEmail = email.toLowerCase();
                     // Check Firestore for the user document (document ID is the email)
-                    const userDocRef = doc(db, "users", email);
+                    const userDocRef = doc(db, "users", normalizedEmail);
                     const userDoc = await getDoc(userDocRef);
 
                     if (userDoc.exists()) {
