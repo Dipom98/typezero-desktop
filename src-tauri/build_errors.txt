@@ -1,0 +1,164 @@
+warning: function `build_apple_intelligence_bridge` is never used
+   --> build.rs:115:4
+    |
+115 | fn build_apple_intelligence_bridge() {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `typezero` (build script) generated 1 warning
+warning: typezero@0.7.5: Generated tray translations: 17 languages, 6 fields
+   Compiling typezero v0.7.5 (/Users/dipomdutta/Downloads/TypeZero-new/typezero-desktop/src-tauri)
+warning: unused import: `path::BaseDirectory`
+  --> src/actions.rs:20:33
+   |
+20 | use tauri::{AppHandle, Manager, path::BaseDirectory, Emitter};
+   |                                 ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `AppHandle` and `Manager`
+ --> src/commands/meetings.rs:1:13
+  |
+1 | use tauri::{AppHandle, Manager, State};
+  |             ^^^^^^^^^  ^^^^^^^
+
+warning: unused import: `crate::managers::history::MeetingSegment`
+ --> src/commands/meetings.rs:3:5
+  |
+3 | use crate::managers::history::MeetingSegment;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Manager`
+ --> src/commands/tts.rs:4:24
+  |
+4 | use tauri::{AppHandle, Manager, State};
+  |                        ^^^^^^^
+
+warning: unused import: `debug`
+ --> src/managers/translation.rs:2:11
+  |
+2 | use log::{debug, info};
+  |           ^^^^^
+
+warning: unused import: `Mutex`
+ --> src/managers/translation.rs:3:22
+  |
+3 | use std::sync::{Arc, Mutex};
+  |                      ^^^^^
+
+warning: unused import: `Manager`
+ --> src/managers/translation.rs:4:24
+  |
+4 | use tauri::{AppHandle, Manager};
+  |                        ^^^^^^^
+
+warning: unused import: `anyhow`
+ --> src/managers/tts.rs:1:14
+  |
+1 | use anyhow::{anyhow, Result};
+  |              ^^^^^^
+
+error[E0624]: method `save_to_database` is private
+   --> src/commands/demo.rs:15:21
+    |
+ 15 |       history_manager.save_to_database(
+    |                       ^^^^^^^^^^^^^^^^ private method
+    |
+   ::: src/managers/history.rs:259:5
+    |
+259 | /     fn save_to_database(
+260 | |         &self,
+261 | |         file_name: String,
+262 | |         timestamp: i64,
+...   |
+266 | |         post_process_prompt: Option<String>,
+267 | |     ) -> Result<()> {
+    | |___________________- private method defined here
+
+error[E0282]: type annotations needed
+  --> src/commands/demo.rs:22:16
+   |
+22 |     ).map_err(|e| e.to_string())?;
+   |                ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+22 |     ).map_err(|e: /* Type */| e.to_string())?;
+   |                 ++++++++++++
+
+error[E0624]: method `save_to_database` is private
+   --> src/commands/demo.rs:24:21
+    |
+ 24 |       history_manager.save_to_database(
+    |                       ^^^^^^^^^^^^^^^^ private method
+    |
+   ::: src/managers/history.rs:259:5
+    |
+259 | /     fn save_to_database(
+260 | |         &self,
+261 | |         file_name: String,
+262 | |         timestamp: i64,
+...   |
+266 | |         post_process_prompt: Option<String>,
+267 | |     ) -> Result<()> {
+    | |___________________- private method defined here
+
+error[E0282]: type annotations needed
+  --> src/commands/demo.rs:31:16
+   |
+31 |     ).map_err(|e| e.to_string())?;
+   |                ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+31 |     ).map_err(|e: /* Type */| e.to_string())?;
+   |                 ++++++++++++
+
+error[E0599]: no method named `unwrap_or_else` found for struct `std::string::String` in the current scope
+  --> src/managers/diagnostics.rs:40:39
+   |
+40 |         let arch = System::cpu_arch().unwrap_or_else(|| "Unknown".to_string());
+   |                                       ^^^^^^^^^^^^^^ method not found in `std::string::String`
+
+error[E0308]: mismatched types
+    --> src/shortcut/mod.rs:1139:26
+     |
+1139 |     settings.tts_speed = speed;
+     |     ------------------   ^^^^^ expected `f32`, found `f64`
+     |     |
+     |     expected due to the type of this binding
+
+warning: unused import: `Manager`
+ --> src/managers/meetings.rs:4:33
+  |
+4 | use tauri::{AppHandle, Emitter, Manager};
+  |                                 ^^^^^^^
+
+warning: unused import: `Manager`
+ --> src/managers/diagnostics.rs:3:24
+  |
+3 | use tauri::{AppHandle, Manager};
+  |                        ^^^^^^^
+
+warning: unnecessary `unsafe` block
+  --> src/apple_intelligence.rs:30:5
+   |
+30 |     unsafe { is_apple_intelligence_available() == 1 }
+   |     ^^^^^^ unnecessary `unsafe` block
+   |
+   = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `manager_clone`
+  --> src/managers/tts.rs:35:13
+   |
+35 |         let manager_clone = Arc::new(self.app_handle.clone()); // We only need app_handle for emitting
+   |             ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_manager_clone`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+Some errors have detailed explanations: E0282, E0308, E0599, E0624.
+For more information about an error, try `rustc --explain E0282`.
+warning: `typezero` (lib) generated 12 warnings
+warning: typezero@0.7.5: Generated tray translations: 17 languages, 6 fields
+error: could not compile `typezero` (lib) due to 6 previous errors; 12 warnings emitted
