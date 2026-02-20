@@ -50,6 +50,13 @@ function App() {
 
   useEffect(() => {
     checkOnboardingStatus();
+
+    // Validate pro status in background on app start
+    const { userEmail, validateLicense } = useAuthStore.getState();
+    if (userEmail) {
+      console.log("🔄 App started - validating pro status for:", userEmail);
+      validateLicense(userEmail);
+    }
   }, []);
 
   // Initialize RTL direction when language changes
