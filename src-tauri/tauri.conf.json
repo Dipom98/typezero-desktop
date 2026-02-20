@@ -42,12 +42,10 @@
   },
   "bundle": {
     "active": true,
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "targets": "all",
     "resources": [
-      "resources/**/*",
-      "../tts/**/*",
-      "../tts_env/**/*"
+      "resources/**/*"
     ],
     "license": "MIT",
     "icon": [
