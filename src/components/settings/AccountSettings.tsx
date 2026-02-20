@@ -288,22 +288,22 @@ export const AccountSettings: React.FC = () => {
                     <CreditCard size={18} className="text-accent" />
                     Billing & Receipts
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <button className="p-4 rounded-2xl bg-black/20 border border-white/5 hover:border-accent/40 transition-all text-left group">
-                        <p className="text-xs text-text-muted group-hover:text-accent transition-colors">Last invoice</p>
-                        <p className="text-sm font-bold mt-1">Jan 17, 2026</p>
-                    </button>
-                    <button className="p-4 rounded-2xl bg-black/20 border border-white/5 hover:border-accent/40 transition-all text-left group">
-                        <p className="text-xs text-text-muted group-hover:text-accent transition-colors">Payment method</p>
-                        <p className="text-sm font-bold mt-1">•••• 4242</p>
-                    </button>
-                    <button
-                        onClick={() => openUrl("https://typezero.dipomdutta.com/")}
-                        className="p-4 rounded-2xl bg-black/20 border border-white/5 hover:border-accent/40 transition-all text-left flex items-center justify-center"
-                    >
-                        <span className="text-xs font-bold text-accent">View All Invoices</span>
-                    </button>
-                </div>
+                {isPro ? (
+                    <div className="flex flex-col items-center justify-center p-8 border border-white/5 rounded-2xl bg-black/10">
+                        <p className="text-sm text-text-muted text-center">Receipt fetching will be available soon.</p>
+                        <button
+                            onClick={() => openUrl("https://typezero.dipomdutta.com/")}
+                            className="text-xs font-bold text-accent mt-3 hover:underline"
+                        >
+                            View Subscription Portal
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center p-8 border border-white/5 rounded-2xl bg-black/10">
+                        <p className="text-sm text-text-muted text-center">No billing history available.</p>
+                        <p className="text-xs text-text-muted/60 mt-1">Upgrade to Pro to view invoices.</p>
+                    </div>
+                )}
             </div>
         </div >
     );

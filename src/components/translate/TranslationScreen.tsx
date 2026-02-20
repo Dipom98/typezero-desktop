@@ -72,6 +72,8 @@ function TranslationScreen() {
             const errorMessage = error instanceof Error ? error.message : String(error);
             if (errorMessage.includes("401") || errorMessage.includes("unauthorized") || errorMessage.includes("key")) {
                 toast.error(`Translation failed: Please check your API Key in Settings > Post-Processing.`);
+            } else if (errorMessage.includes("error sending request for url") || errorMessage.includes("Connection refused") || errorMessage.includes("11434")) {
+                toast.error(`Translation failed: Unable to connect to your local AI model. Please ensure Ollama is running or check your Post-Processing provider settings.`);
             } else {
                 toast.error(`Translation failed: ${errorMessage}`);
             }
@@ -105,7 +107,7 @@ function TranslationScreen() {
     // --- Render Helpers ---
 
     return (
-        <div className="w-full h-full flex flex-col text-text overflow-hidden bg-gradient-to-br from-background via-background to-black/20">
+        <div className="w-full h-full flex flex-col text-text overflow-hidden">
             {/* Header Region */}
             <div className="flex-none p-6 pb-4 z-10">
                 <div className="max-w-4xl mx-auto w-full space-y-6">
@@ -118,7 +120,7 @@ function TranslationScreen() {
                         </div>
 
                         {/* Mode Toggle */}
-                        <div className="flex items-center gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-1 p-1.5 bg-white/20 dark:bg-white/5 rounded-2xl border border-white/20 dark:border-white/5 backdrop-blur-sm">
                             <button
                                 onClick={() => setMode("voice")}
                                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === "voice"
@@ -141,7 +143,7 @@ function TranslationScreen() {
                     </div>
 
                     {/* Language Selectors */}
-                    <div className="flex items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+                    <div className="flex items-center gap-4 bg-white/20 dark:bg-white/5 p-2 rounded-2xl border border-white/20 dark:border-white/5 backdrop-blur-md">
                         <select
                             value={sourceLang}
                             onChange={(e) => setSourceLang(e.target.value)}
@@ -152,7 +154,7 @@ function TranslationScreen() {
                             ))}
                         </select>
 
-                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-text-muted">
+                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/30 dark:bg-white/10 text-text-muted">
                             <ArrowRightLeft className="w-4 h-4" />
                         </div>
 
@@ -176,7 +178,7 @@ function TranslationScreen() {
                     {/* Input Area */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Source Card */}
-                        <div className="group bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/[0.07] border border-black/10 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col transition-all duration-300 shadow-xl shadow-black/20 backdrop-blur-sm">
+                        <div className="group bg-white/20 dark:bg-white/5 hover:bg-white/30 dark:hover:bg-white/[0.07] border border-white/20 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col transition-all duration-300 shadow-xl shadow-black/5 backdrop-blur-sm">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
                                     {SUPPORTED_LANGUAGES.find(l => l.code === sourceLang)?.name}
@@ -232,7 +234,7 @@ function TranslationScreen() {
                         </div>
 
                         {/* Target Card */}
-                        <div className="relative group bg-gradient-to-br from-black/5 dark:from-white/5 to-transparent dark:to-white/[0.02] border border-black/10 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col overflow-hidden transition-all duration-300 shadow-xl shadow-black/20">
+                        <div className="relative group bg-gradient-to-br from-white/20 dark:from-white/5 to-transparent dark:to-white/[0.02] border border-white/20 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col overflow-hidden transition-all duration-300 shadow-xl shadow-black/5">
                             {/* Decorative Sparkle */}
                             <div className="absolute -top-10 -right-10 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity duration-700 pointer-events-none">
                                 <Sparkles className="w-48 h-48" />

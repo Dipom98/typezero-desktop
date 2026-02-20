@@ -27,8 +27,8 @@ interface AuthState {
 }
 
 const DAILY_LIMITS = {
-    FREE_DICTATION_SECONDS: 300, // 5 minutes
-    FREE_TTS_CHARS: 1000,
+    FREE_DICTATION_SECONDS: 400, // ~1000 words at avg speaking speed
+    FREE_TTS_CHARS: 1500,
 };
 
 const GRACE_PERIOD_DAYS = 7;
@@ -108,6 +108,7 @@ export const useAuthStore = create<AuthState>()(
                     const userDocRef = doc(db, "users", normalizedEmail);
                     const userDoc = await getDoc(userDocRef);
 
+                    // 1. Check if the CURRENT user already owns this key
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
 
@@ -138,32 +139,60 @@ export const useAuthStore = create<AuthState>()(
                         }
                     }
 
-                    // If we want to check a 'licenses' collection or similar:
+                    // 2. Global Key Search
+                    // If the user bought a key from a different email, but is logging into this app with a new email,
+                    // we need to find the original purchase by searching ALL users for this licenseKey.
                     try {
                         const { collection, query, where, getDocs } = await import("firebase/firestore");
-                        const licensesRef = collection(db, "licenses");
-                        // check matching license key and email
-                        const q = query(licensesRef, where("key", "==", trimmedKey), where("email", "==", normalizedEmail));
-                        const querySnapshot = await getDocs(q);
+                        const usersRef = collection(db, "users");
 
-                        if (!querySnapshot.empty) {
-                            // Check expiration here if needed for the license doc itself
-                            const licenseData = querySnapshot.docs[0].data();
-                            if (licenseData.status === "cancelled" || licenseData.status === "expired") {
-                                return false;
+                        // Check all possible key fields across all users
+                        const queries = [
+                            query(usersRef, where("licenseKey", "==", trimmedKey)),
+                            query(usersRef, where("lemonSqueezyLicenseKey", "==", trimmedKey)),
+                            query(usersRef, where("subscriptionId", "==", trimmedKey)),
+                            query(usersRef, where("razorpaySubscriptionId", "==", trimmedKey)),
+                            query(usersRef, where("stripeSubscriptionId", "==", trimmedKey))
+                        ];
+
+                        let foundValidKey = false;
+                        for (const q of queries) {
+                            const querySnapshot = await getDocs(q);
+                            if (!querySnapshot.empty) {
+                                const matchedUserDoc = querySnapshot.docs[0].data();
+
+                                // Check expiration
+                                if (matchedUserDoc.expiresAt) {
+                                    const expiresAt = new Date(matchedUserDoc.expiresAt);
+                                    if (new Date() > expiresAt) continue;
+                                }
+
+                                foundValidKey = true;
+                                break;
                             }
+                        }
 
+                        if (foundValidKey) {
+                            // Valid key found globally! Attach it to the CURRENT user.
                             set({
                                 isPro: true,
                                 licenseKey: trimmedKey,
-                                userEmail: email,
+                                userEmail: normalizedEmail,
                                 lastVerifiedAt: new Date().toISOString()
                             });
-                            await setDoc(userDocRef, { isPro: true, licenseKey: trimmedKey, email: normalizedEmail }, { merge: true });
+
+                            // Save this license mapping to the current user's document
+                            await setDoc(userDocRef, {
+                                isPro: true,
+                                licenseKey: trimmedKey,
+                                email: normalizedEmail,
+                                linkedFromGlobalKey: true
+                            }, { merge: true });
+
                             return true;
                         }
                     } catch (e) {
-                        console.error("Error checking licenses collection", e);
+                        console.error("Firestore global user key query failed:", e);
                     }
 
                     return false;

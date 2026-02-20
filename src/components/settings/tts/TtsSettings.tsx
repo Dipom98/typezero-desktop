@@ -230,9 +230,9 @@ export const TtsSettings: React.FC = () => {
                             </div>
                             <button
                                 onClick={() => updateSetting("tts_enabled", !settings?.tts_enabled)}
-                                className={`w-11 h-6 rounded-full transition-all duration-300 relative shadow-inner ${settings?.tts_enabled ? 'bg-accent' : 'bg-black/20 dark:bg-white/10'}`}
+                                className={`w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-accent/50 ${settings?.tts_enabled ? 'bg-accent' : 'bg-black/20 dark:bg-white/20'}`}
                             >
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${settings?.tts_enabled ? 'left-6' : 'left-1'}`} />
+                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ease-in-out ${settings?.tts_enabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
                             </button>
                         </div>
 
