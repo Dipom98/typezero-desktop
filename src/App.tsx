@@ -10,7 +10,6 @@ import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
 import { OnboardingFlow } from "./components/onboarding";
-import { BetaSecurityNotice } from "./components/onboarding/BetaSecurityNotice";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { SpeakSelection } from "./components/ui";
 import { useSettings } from "./hooks/useSettings";
@@ -48,16 +47,40 @@ function App() {
   );
   const hasCompletedPostOnboardingInit = useRef(false);
 
+  const userEmail = useAuthStore((state) => state.userEmail);
+  const validateLicense = useAuthStore((state) => state.validateLicense);
+  const hasValidatedAccount = useRef(false);
+
   useEffect(() => {
     checkOnboardingStatus();
-
-    // Validate pro status in background on app start
-    const { userEmail, validateLicense } = useAuthStore.getState();
-    if (userEmail) {
-      console.log("🔄 App started - validating pro status for:", userEmail);
-      validateLicense(userEmail);
-    }
   }, []);
+
+  useEffect(() => {
+    // Validate pro status in background on app start once hydration provides the email
+    if (userEmail && !hasValidatedAccount.current) {
+      hasValidatedAccount.current = true;
+
+      const lastVerified = useAuthStore.getState().lastVerifiedAt;
+      const isPro = useAuthStore.getState().isPro;
+
+      let needsRevalidation = true;
+      if (isPro && lastVerified) {
+        const lastDate = new Date(lastVerified);
+        const now = new Date();
+        const diffHours = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+        // Only re-validate if it's been more than 24 hours
+        if (diffHours < 24) {
+          needsRevalidation = false;
+          console.log("✅ Pro status still fresh (last verified < 24h ago). Skipping background sync.");
+        }
+      }
+
+      if (needsRevalidation) {
+        console.log("🔄 App started - validating pro status for:", userEmail);
+        validateLicense(userEmail);
+      }
+    }
+  }, [userEmail, validateLicense]);
 
   // Initialize RTL direction when language changes
   useEffect(() => {
@@ -178,9 +201,7 @@ function App() {
     setOnboardingStep("done");
   };
 
-  const [showBetaNotice, setShowBetaNotice] = useState(() => {
-    return localStorage.getItem("beta-notice-dismissed") !== "true";
-  });
+
 
   // Still checking onboarding status
   if (onboardingStep === null) {
@@ -198,14 +219,7 @@ function App() {
       data-theme={settings?.theme || "plain"}
       className="h-screen flex select-none cursor-default overflow-hidden bg-background"
     >
-      {showBetaNotice && (
-        <BetaSecurityNotice
-          onDismiss={() => {
-            setShowBetaNotice(false);
-            localStorage.setItem("beta-notice-dismissed", "true");
-          }}
-        />
-      )}
+
       <SpeakSelection />
       <Toaster
         theme="system"

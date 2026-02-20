@@ -2,9 +2,23 @@ import os
 import sys
 import subprocess
 import importlib.util
+import tempfile
+import time
+import shutil
+from flask import Flask, request, send_file, jsonify
+
+app = Flask(__name__)
+
+# Base directory for models (matches Rust ModelManager)
+# On macOS: ~/Library/Application Support/typezero/models
+if sys.platform == "darwin":
+    MODELS_DIR = os.path.expanduser("~/Library/Application Support/typezero/models")
+else:
+    # Fallback/Default
+    MODELS_DIR = os.path.join(os.getcwd(), "models")
 
 def install_deps():
-    deps = ["flask", "TTS", "torch", "Pillow", "numpy==1.26.4"]
+    deps = ["flask", "pyttsx3"] 
     missing = []
     for dep in deps:
         pkg = dep.split("==")[0]
@@ -14,111 +28,104 @@ def install_deps():
     if missing:
         print(f"[*] Missing dependencies found. Installing {missing}...", flush=True)
         try:
-            # Install missing packages
-            subprocess.check_call([sys.executable, "-m", "pip", "install"] + missing, stdout=sys.stdout, stderr=sys.stderr)
+            subprocess.check_call([sys.executable, "-m", "pip", "install"] + missing)
             print("[*] Installation successful. Rebooting script.", flush=True)
-            os.execv(sys.executable, [sys.executable] + sys.argv)
+            os.execv(sys.executable, ['python3'] + sys.argv)
         except Exception as e:
-            print(f"[!] Failed to auto-install dependencies: {e}", flush=True)
-            sys.exit(1)
+            print(f"[!] Auto-install failed: {e}", flush=True)
 
-# Ensure dependencies are installed before importing them
-install_deps()
-
-import traceback
-from flask import Flask, request, send_file, make_response
-from TTS.api import TTS
-import torch
-
-app = Flask(__name__)
-
-# Choose device: cuda > mps (macOS) > cpu
-device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-if torch.backends.mps.is_available():
-    device = "mps"
-
-print(f"[*] Starting TypeZero TTS on {device}...", flush=True)
-
-# Global model instance
-tts = None
-
+# Try pyttsx3 import after install_deps
 try:
-    model_name = "tts_models/en/vctk/vits"
-    # Load model once on startup
-    tts = TTS(model_name).to(device)
-    print(f"[*] TTS Model {model_name} loaded successfully", flush=True)
-except Exception as e:
-    print(f"[!] Critical Error during model loading: {e}", flush=True)
-    traceback.print_exc()
-    sys.exit(1)
+    import pyttsx3
+except ImportError:
+    install_deps()
+    import pyttsx3
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    """Global error handler to capture and return tracebacks"""
-    tb = traceback.format_exc()
-    print(f"[!] Server Error:\n{tb}", flush=True)
-    # Return as plain text so it shows up clearly in the UI toast
-    return f"TTS Server Error:\n{tb}", 500
-
-@app.route("/speak", methods=["POST"])
+@app.route('/speak', methods=['POST'])
 def speak():
-    # Force JSON parsing regardless of content-type
-    data = request.get_json(force=True)
-    if not data:
-        return "Missing JSON body", 400
-        
-    text = data.get("text", "")
-    voice = data.get("voice", "p225")
-    speed = data.get("speed", 1.0)
-
-    if not text:
-        return "Text is required", 400
-
-    # Ensure speaker selection is valid for multi-speaker models
-    speaker = None
-    if tts.is_multi_speaker:
-        if not voice or voice == "default":
-            voice = "p225"
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Missing JSON body"}), 400
             
-        if voice in tts.speakers:
-            speaker = voice
+        text = data.get('text', '')
+        voice_id = data.get('voice', '')
+        speed = float(data.get('speed', 1.0))
+        model_id = data.get('model_id', '')
+
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+
+        # Determine engine
+        engine_type = "native"
+        if model_id:
+             if "piper" in model_id.lower():
+                 engine_type = "piper"
+             elif "xtts" in model_id.lower():
+                 engine_type = "xtts"
+
+        print(f"[*] Processing ({engine_type} | {model_id}): {text[:50]}...", flush=True)
+
+        # Generate unique temp file
+        temp_dir = tempfile.gettempdir()
+        temp_wav = os.path.join(temp_dir, f"tz_tts_{int(time.time())}.wav")
+
+        if engine_type == "native":
+            engine = pyttsx3.init()
+            
+            # macOS specific voice selection
+            if voice_id:
+                voices = engine.getProperty('voices')
+                for v in voices:
+                    if voice_id.lower() in v.id.lower() or voice_id.lower() in v.name.lower():
+                        engine.setProperty('voice', v.id)
+                        break
+
+            # Adjust speed (pyttsx3 uses words per minute, default is ~200)
+            rate = engine.getProperty('rate')
+            engine.setProperty('rate', int(rate * speed))
+
+            engine.save_to_file(text, temp_wav)
+            engine.runAndWait()
+            del engine
+        elif engine_type == "piper":
+            # Piper logic placeholder (to be fully integrated with ONNX runtime if downloaded)
+            # For now, if someone selected it but didn't actually download, we should fallback or error
+            # Check if .onnx file exists in MODELS_DIR
+            return jsonify({"error": "Piper engine not yet fully wired in Python. Please use Native for now."}), 501
         else:
-            # Fallback to p225 (famous VCTK voice) or first available
-            speaker = "p225" if "p225" in tts.speakers else tts.speakers[0]
-            print(f"[*] Speaker '{voice}' not found, falling back to '{speaker}'", flush=True)
-    
-    # Use /tmp for reliable cross-process file access on macOS
-    import tempfile
-    output_path = os.path.join(tempfile.gettempdir(), f"typezero_tts_{os.getpid()}.wav")
-    
-    print(f"[*] Processing: {text[:50]}... [Speaker: {speaker}]", flush=True)
+            return jsonify({"error": f"Engine {engine_type} not implemented yet"}), 501
 
-    # Generate audio
-    # The 'speaker' argument is string ID for VITS
-    tts.tts_to_file(
-        text=text, 
-        speaker=speaker, 
-        file_path=output_path
-    )
-    
-    if not os.path.exists(output_path):
-        return "Audio generation failed: output file not found", 500
+        # Check if file was actually created and has content
+        for _ in range(5):
+            if os.path.exists(temp_wav) and os.path.getsize(temp_wav) > 0:
+                break
+            time.sleep(0.1)
 
-    # Return the file as an attachment
-    response = make_response(send_file(output_path, mimetype="audio/wav"))
-    response.headers['Content-Type'] = 'audio/wav'
-    return response
+        if not os.path.exists(temp_wav) or os.path.getsize(temp_wav) == 0:
+            return jsonify({"error": "Failed to generate audio file"}), 500
 
-@app.route("/voices", methods=["GET"])
-def get_voices():
-    if tts and tts.is_multi_speaker:
-        return {"voices": tts.speakers}
-    return {"voices": []}
+        return send_file(
+            temp_wav, 
+            mimetype="audio/wav", 
+            as_attachment=True, 
+            download_name="speech.wav"
+        )
 
-@app.route("/health", methods=["GET"])
-def health():
-    return {"status": "ok", "device": device, "model": model_name}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == "__main__":
-    # Internal server for local use only
-    app.run(host="127.0.0.1", port=5002, debug=False)
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify({
+        "status": "ready",
+        "models_dir": MODELS_DIR,
+        "voices": ["system_default"]
+    })
+
+if __name__ == '__main__':
+    print(f"[*] Starting TypeZero Speech Server...", flush=True)
+    print(f"[*] Models Directory: {MODELS_DIR}", flush=True)
+    app.run(port=5002, host='127.0.0.1')

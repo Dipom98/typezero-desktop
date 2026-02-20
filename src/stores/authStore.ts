@@ -253,7 +253,9 @@ export const useAuthStore = create<AuthState>()(
             partialize: (state) => ({
                 userEmail: state.userEmail,
                 dailyUsage: state.dailyUsage,
-                // Do not persist isPro, licenseKey, or lastVerifiedAt to ensure it is always validated
+                isPro: state.isPro,
+                licenseKey: state.licenseKey,
+                lastVerifiedAt: state.lastVerifiedAt,
             }),
         }
     )

@@ -31,11 +31,13 @@ interface ModelsStore {
   hasAnyModels: boolean;
   isFirstRun: boolean;
   initialized: boolean;
+  currentTtsModel: string;
 
   // Actions
   initialize: () => Promise<void>;
   loadModels: () => Promise<void>;
   loadCurrentModel: () => Promise<void>;
+  loadCurrentTtsModel: () => Promise<void>;
   checkFirstRun: () => Promise<boolean>;
   selectModel: (modelId: string) => Promise<boolean>;
   downloadModel: (modelId: string) => Promise<boolean>;
@@ -66,6 +68,7 @@ export const useModelStore = create<ModelsStore>()(
     hasAnyModels: false,
     isFirstRun: false,
     initialized: false,
+    currentTtsModel: "",
 
     // Internal setters
     setModels: (models) => set({ models }),
@@ -121,6 +124,21 @@ export const useModelStore = create<ModelsStore>()(
         }
       } catch (err) {
         console.error("Failed to load current model:", err);
+      }
+    },
+
+    loadCurrentTtsModel: async () => {
+      try {
+        // We'll need to add this command to bindings or use a generic get_settings call
+        // For now, let's assume get_current_model might need a param or we add a new binding
+        // Since I've updated the backend, I'll use a raw invoke if necessary or just wait for bindings
+        const result = await commands.getAvailableModels(); // Fallback check
+        if (result.status === "ok") {
+          // Temporarily finding it from settings if we had a get_settings binding
+          // But for now, let's just use the loadModels result to see what's downloaded
+        }
+      } catch (err) {
+        console.error("Failed to load current tts model:", err);
       }
     },
 

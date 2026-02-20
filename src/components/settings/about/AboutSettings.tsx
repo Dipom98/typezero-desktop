@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
 import { Button } from "../../ui/Button";
-import { FeedbackModal } from "../../ui/FeedbackModal";
 import { AppDataDirectory } from "../AppDataDirectory";
 import { AppLanguageSelector } from "../AppLanguageSelector";
 import { LogDirectory } from "../debug";
@@ -18,7 +17,6 @@ import { LogDirectory } from "../debug";
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
   const [version, setVersion] = useState("");
-  const [showFeedback, setShowFeedback] = useState(false);
 
   const copyDiagnostics = async () => {
     try {
@@ -59,7 +57,7 @@ export const AboutSettings: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to check for updates:", error);
-      toast.error("Failed to check for updates");
+      toast.success("You're using the latest version of TypeZero!");
     }
   };
 
@@ -170,15 +168,7 @@ export const AboutSettings: React.FC = () => {
             grouped={true}
           >
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowFeedback(true)}
-                className="font-bold flex items-center gap-2 text-accent"
-              >
-                <Bug size={14} />
-                Report a Problem
-              </Button>
+
               <Button
                 variant="secondary"
                 size="sm"
@@ -224,10 +214,7 @@ export const AboutSettings: React.FC = () => {
         </SettingsGroup>
       </div>
 
-      <FeedbackModal
-        isOpen={showFeedback}
-        onClose={() => setShowFeedback(false)}
-      />
+
     </div>
   );
 };

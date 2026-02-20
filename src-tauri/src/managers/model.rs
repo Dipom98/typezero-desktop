@@ -22,6 +22,8 @@ pub enum EngineType {
     Parakeet,
     Moonshine,
     SenseVoice,
+    Piper,
+    XTTS,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -317,6 +319,54 @@ impl ModelManager {
                 supports_translation: false,
                 is_recommended: false,
                 supported_languages: sense_voice_languages,
+                is_custom: false,
+            },
+        );
+
+        // --- TTS MODELS ---
+
+        available_models.insert(
+            "piper-en-joy-medium".to_string(),
+            ModelInfo {
+                id: "piper-en-joy-medium".to_string(),
+                name: "Speech: Piper Joy (EN)".to_string(),
+                description: "Lightweight neural TTS. High quality, very fast.".to_string(),
+                filename: "en_US-joy-medium.onnx".to_string(),
+                url: Some("https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/joy/medium/en_US-joy-medium.onnx".to_string()),
+                size_mb: 50,
+                is_downloaded: false,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::Piper,
+                accuracy_score: 0.85,
+                speed_score: 0.90,
+                supports_translation: false,
+                is_recommended: true,
+                supported_languages: vec!["en".to_string()],
+                is_custom: false,
+            },
+        );
+
+        available_models.insert(
+            "xtts-v2".to_string(),
+            ModelInfo {
+                id: "xtts-v2".to_string(),
+                name: "Speech: XTTS v2 (Cloning)".to_string(),
+                description: "Pro Level. Supports Voice Cloning and 16+ languages.".to_string(),
+                filename: "xtts-v2".to_string(),
+                url: Some("https://blob.handy.computer/xtts-v2.tar.gz".to_string()),
+                size_mb: 2048,
+                is_downloaded: false,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: true,
+                engine_type: EngineType::XTTS,
+                accuracy_score: 0.95,
+                speed_score: 0.20,
+                supports_translation: false,
+                is_recommended: false,
+                supported_languages: vec!["en", "de", "fr", "es", "it", "pl", "pt", "tr", "ru", "nl", "cs", "ar", "zh", "hu", "ko", "ja"].into_iter().map(String::from).collect(),
                 is_custom: false,
             },
         );

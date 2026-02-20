@@ -12,6 +12,7 @@ export const ModelsSettings: React.FC = () => {
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [languageFilter, setLanguageFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"transcription" | "speech">("transcription");
 
   const {
     models,
@@ -26,13 +27,20 @@ export const ModelsSettings: React.FC = () => {
 
   const filteredModels = useMemo(() => {
     return models.filter((model) => {
+      // Filter by tab
+      const isTTS = (model.engine_type as any) === "Piper" || (model.engine_type as any) === "XTTS";
+      if (activeTab === "transcription" && isTTS) return false;
+      if (activeTab === "speech" && !isTTS) return false;
+
       const matchesSearch = model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         model.description.toLowerCase().includes(searchQuery.toLowerCase());
+
       const matchesLanguage = languageFilter === "all" ||
         (languageFilter === "multilingual" ? model.supported_languages.length > 1 : model.supported_languages.includes(languageFilter));
+
       return matchesSearch && matchesLanguage;
     });
-  }, [models, searchQuery, languageFilter]);
+  }, [models, searchQuery, languageFilter, activeTab]);
 
   const downloadedModels = filteredModels.filter(m => m.is_downloaded);
   const availableModels = filteredModels.filter(m => !m.is_downloaded);
@@ -73,10 +81,25 @@ export const ModelsSettings: React.FC = () => {
   return (
     <div className="w-full space-y-10 pb-20">
       <div className="flex flex-col gap-2">
-        <h1 className="mac-title text-3xl">Transcription Models</h1>
+        <h1 className="mac-title text-3xl">AI Models</h1>
         <p className="mac-muted text-sm max-w-xl">
-          Choose a model that fits your hardware. Small models are faster, while large models provide higher accuracy for complex audio.
+          Configure and download local AI models for transcription and high-quality speech.
         </p>
+      </div>
+
+      <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-fit">
+        <button
+          onClick={() => setActiveTab("transcription")}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "transcription" ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:text-text hover:bg-white/5"}`}
+        >
+          Transcription
+        </button>
+        <button
+          onClick={() => setActiveTab("speech")}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === "speech" ? "bg-accent text-white shadow-lg shadow-accent/20" : "text-text-muted hover:text-text hover:bg-white/5"}`}
+        >
+          Speech (TTS)
+        </button>
       </div>
 
       <div className="flex items-center gap-4 border-b border-white/5 pb-8">

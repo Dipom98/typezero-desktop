@@ -25,9 +25,13 @@ export const EmailOnboarding: React.FC<EmailOnboardingProps> = ({ onNext }) => {
 
         setIsLoading(true);
         try {
+            // Force the store to update the email immediately
+            const normalizedEmail = email.toLowerCase();
+            useAuthStore.getState().setUser(normalizedEmail);
+
             // validateLicense will check if the user is Pro, and if not, 
             // will silently create a new free user record in Firestore.
-            const isPro = await validateLicense(email);
+            const isPro = await validateLicense(normalizedEmail);
 
             if (isPro) {
                 toast.success("Welcome back! Your Pro subscription is active.");

@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use log::{debug, error, info};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Manager, path::BaseDirectory, Emitter};
@@ -18,7 +20,10 @@ impl TtsManager {
             app_handle: app_handle.clone(),
         };
 
-        manager.start_service()?;
+        let settings = crate::settings::get_settings(app_handle);
+        if settings.tts_enabled {
+            manager.start_service()?;
+        }
         manager.start_health_check();
         Ok(manager)
     }
@@ -109,6 +114,11 @@ impl TtsManager {
                 }
 
                 if needs_restart {
+                    let settings = crate::settings::get_settings(&app_handle);
+                    if !settings.tts_enabled {
+                        continue; // Avoid restarting if the user disabled it
+                    }
+
                     let _ = app_handle.emit("tts-service-status", "restarting");
                     // We can't call self.start_service directly here easily without Arc self
                     // So we inline the logic or use a helper
@@ -143,11 +153,15 @@ impl TtsManager {
                     }
 
                     info!("Health check: Restarting TTS service at {:?}", tts_path);
-                    match Command::new(Self::get_python_command())
-                        .arg(&tts_path)
+                    let mut cmd = Command::new(Self::get_python_command());
+                    cmd.arg(&tts_path)
                         .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .spawn()
+                        .stderr(Stdio::piped());
+
+                    #[cfg(target_os = "windows")]
+                    cmd.creation_flags(0x08000000);
+
+                    match cmd.spawn()
                     {
                         Ok(mut child) => {
                             // Capture stdout for logging
@@ -233,11 +247,15 @@ impl TtsManager {
             // For now, we assume python3 is in PATH
             info!("Starting TTS service at {:?}", tts_path);
 
-            match Command::new(Self::get_python_command())
-                .arg(&tts_path)
+            let mut cmd = Command::new(Self::get_python_command());
+            cmd.arg(&tts_path)
                 .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
+                .stderr(Stdio::piped());
+
+            #[cfg(target_os = "windows")]
+            cmd.creation_flags(0x08000000);
+
+            match cmd.spawn()
             {
                 Ok(child) => {
                     *child_arc.lock().unwrap() = Some(child);

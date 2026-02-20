@@ -76,14 +76,24 @@ pub async fn set_active_model(
         return Err(format!("Model not downloaded: {}", model_id));
     }
 
-    // Load the model in the transcription manager
-    transcription_manager
-        .load_model(&model_id)
-        .map_err(|e| e.to_string())?;
+    let mut settings = get_settings(&app_handle);
+
+    // Handle TTS models vs Transcription models
+    match model_info.engine_type {
+        crate::managers::model::EngineType::Piper | crate::managers::model::EngineType::XTTS => {
+            settings.selected_tts_model = model_id.clone();
+            // We don't load TTS models into the transcription manager
+        }
+        _ => {
+            // Load the model in the transcription manager
+            transcription_manager
+                .load_model(&model_id)
+                .map_err(|e| e.to_string())?;
+            settings.selected_model = model_id.clone();
+        }
+    }
 
     // Update settings
-    let mut settings = get_settings(&app_handle);
-    settings.selected_model = model_id.clone();
     write_settings(&app_handle, settings);
 
     Ok(())

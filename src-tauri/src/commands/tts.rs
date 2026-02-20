@@ -32,6 +32,7 @@ pub async fn speak(
         "text": request.text,
         "voice": settings.tts_voice,
         "speed": settings.tts_speed,
+        "model_id": settings.selected_tts_model,
     });
 
     let client = reqwest::Client::new();

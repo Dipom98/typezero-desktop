@@ -381,6 +381,8 @@ pub struct AppSettings {
     pub telemetry_enabled: bool,
     #[serde(default = "default_beta_channel_enabled")]
     pub beta_channel_enabled: bool,
+    #[serde(default = "default_tts_model")]
+    pub selected_tts_model: String,
 }
 
 fn default_model() -> String {
@@ -446,6 +448,10 @@ fn default_recording_retention_period() -> RecordingRetentionPeriod {
     RecordingRetentionPeriod::PreserveLimit
 }
 
+fn default_tts_model() -> String {
+    "".to_string()
+}
+
 fn default_audio_feedback_volume() -> f32 {
     1.0
 }
@@ -469,7 +475,7 @@ fn default_show_tray_icon() -> bool {
 }
 
 fn default_post_process_provider_id() -> String {
-    "openai".to_string()
+    "ollama".to_string()
 }
 
 fn default_post_process_providers() -> Vec<PostProcessProvider> {

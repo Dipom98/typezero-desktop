@@ -1116,10 +1116,21 @@ pub fn change_app_theme_setting(app: AppHandle, theme: String) -> Result<(), Str
 
 #[tauri::command]
 #[specta::specta]
-pub fn change_tts_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+pub fn change_tts_enabled_setting(
+    app: AppHandle,
+    tts_manager: tauri::State<'_, std::sync::Arc<crate::managers::tts::TtsManager>>,
+    enabled: bool
+) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.tts_enabled = enabled;
     settings::write_settings(&app, settings);
+    
+    if enabled {
+        let _ = tts_manager.start_service();
+    } else {
+        tts_manager.stop_service();
+    }
+
     Ok(())
 }
 
