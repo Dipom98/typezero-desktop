@@ -1,20 +1,8 @@
-import { getAuth } from 'firebase/auth';
-import { persist } from 'some-persist-library';
+import { writable } from 'svelte/store';
+import { persist } from 'svelte-local-storage-store';
 
-const authStore = { 
-  userEmail: '',
-  dailyUsage: 0,
-  // Removed isPro, licenseKey, lastVerifiedAt
-};
-
-// Configuring persistence
-persist(authStore, {
-  partialize: (state) => ({ userEmail: state.userEmail, dailyUsage: state.dailyUsage }),
+// Updated to persist only userEmail and dailyUsage
+export const authStore = persist('authStore', {
+    userEmail: '',
+    dailyUsage: 0
 });
-
-const refreshAuth = () => {
-  const auth = getAuth();
-  // Logic to fetch isPro and licenseKey from Firebase if needed
-};
-
-export default authStore;
