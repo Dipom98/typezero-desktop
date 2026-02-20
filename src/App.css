@@ -74,34 +74,7 @@ body,
   min-height: 100vh;
 }
 
-/* Windows 11 Styling (Mica-like) */
-[data-platform='windows'] {
-  --color-background: #202020;
-  --color-background-elevated: rgba(32, 32, 32, 0.75);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --radius-mac: 8px;
-  --radius-mac-lg: 12px;
-  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
-}
 
-[data-platform='windows'][data-theme='plain'] {
-  --color-background: #f3f3f3;
-  --color-background-elevated: rgba(243, 243, 243, 0.85);
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-text: #1a1a1a;
-}
-
-[data-platform='windows'] .mac-card {
-  backdrop-filter: blur(40px) saturate(1.5);
-  background-color: var(--color-background-elevated);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-[data-platform='windows'] .glass-sidebar {
-  background: rgba(var(--color-background), 0.5);
-  backdrop-filter: blur(50px);
-}
 
 [data-theme='plain'],
 [data-theme='plain'] body {

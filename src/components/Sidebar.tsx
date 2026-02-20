@@ -19,6 +19,7 @@ import {
   Users,
   MessageSquare
 } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import TypeZeroTextLogo from "./icons/TypeZeroTextLogo";
 import iconUrl from "../assets/icon.png";
 import { useSettings } from "../hooks/useSettings";
@@ -169,9 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     updateSetting("theme", isDark ? "plain" : "dark");
   };
 
-  const openUrl = (url: string) => {
-    window.open(url, "_blank");
-  };
+
 
   return (
     <div

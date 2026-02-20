@@ -188,6 +188,7 @@ function App() {
     <div
       dir={direction}
       data-platform={osPlatform}
+      data-theme={settings?.theme || "plain"}
       className="h-screen flex select-none cursor-default overflow-hidden bg-background"
     >
       {showBetaNotice && (

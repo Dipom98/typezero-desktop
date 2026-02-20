@@ -70,7 +70,7 @@ export const BetaSecurityNotice: React.FC<BetaSecurityNoticeProps> = ({
                 </div>
 
                 <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
-                    <Button onClick={onDismiss} className="px-8">
+                    <Button onClick={onDismiss} className="px-8 bg-gray-900 text-white hover:bg-black">
                         I Understand
                     </Button>
                 </div>

@@ -208,6 +208,13 @@ export const GeneralSettings: React.FC = () => {
                 <span className="opacity-50 text-sm font-medium">(⌘D)</span>
                 <ChevronRight size={20} className="stroke-[3]" />
               </button>
+
+              <button
+                onClick={dismissWelcome}
+                className="w-full py-3 text-sm font-medium text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all"
+              >
+                Skip for now
+              </button>
             </div>
           </div>
         </div>
