@@ -11,6 +11,38 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 
 type OverlayState = "recording" | "transcribing" | "processing";
 
+const AnimatedReveal: React.FC<{ text: string }> = ({ text }) => {
+  const [visibleChars, setVisibleChars] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisibleChars((prev) => {
+        if (prev >= text.length + 5) {
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 150);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return (
+    <span style={{ display: "inline-block" }}>
+      {text.split("").map((char, index) => (
+        <span
+          key={index}
+          style={{
+            opacity: index < visibleChars ? 1 : 0,
+            transition: "opacity 50ms",
+          }}
+        >
+          {char}
+        </span>
+      ))}
+    </span>
+  );
+};
+
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
@@ -63,7 +95,7 @@ const RecordingOverlay: React.FC = () => {
   const getIcon = () => {
     return (
       <div className={`logo-container ${state === "recording" ? "animate-pulse-slow" : "animate-spin-slow"}`}>
-        <TypeZeroLogoSmall width={24} height={24} className="text-accent" />
+        <TypeZeroLogoSmall width={32} height={32} className="text-accent" />
       </div>
     );
   };
@@ -77,8 +109,10 @@ const RecordingOverlay: React.FC = () => {
 
       <div className="overlay-middle">
         {state === "recording" && (
-          <div className="flex items-center gap-2">
-            <div className="transcribing-text">{t("overlay.listening")}</div>
+          <div className="flex items-center gap-2 justify-center w-full">
+            <div className="transcribing-text">
+              <AnimatedReveal text={t("overlay.listening")} />
+            </div>
             <div className="bars-container">
               {levels.map((v, i) => (
                 <div
@@ -95,10 +129,14 @@ const RecordingOverlay: React.FC = () => {
           </div>
         )}
         {state === "transcribing" && (
-          <div className="transcribing-text">{t("overlay.transcribing")}</div>
+          <div className="transcribing-text">
+            <AnimatedReveal text={t("overlay.transcribing")} />
+          </div>
         )}
         {state === "processing" && (
-          <div className="transcribing-text">{t("overlay.processing")}</div>
+          <div className="transcribing-text">
+            <AnimatedReveal text={t("overlay.processing")} />
+          </div>
         )}
       </div>
 

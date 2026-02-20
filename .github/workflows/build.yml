@@ -46,6 +46,8 @@ on:
 
 jobs:
   build:
+    env:
+      CERT_ID: ""
     permissions:
       contents: write
     runs-on: ${{ inputs.platform }}

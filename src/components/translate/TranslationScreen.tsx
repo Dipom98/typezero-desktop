@@ -111,19 +111,19 @@ function TranslationScreen() {
                 <div className="max-w-4xl mx-auto w-full space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            <h1 className="text-3xl font-bold tracking-tight text-text dark:text-white">
                                 Translate
                             </h1>
                             <p className="text-text-muted mt-1 font-medium">Break language barriers with AI.</p>
                         </div>
 
                         {/* Mode Toggle */}
-                        <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-sm">
                             <button
                                 onClick={() => setMode("voice")}
                                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === "voice"
                                     ? "bg-accent/20 text-accent shadow-sm border border-accent/10"
-                                    : "text-text-muted hover:text-text hover:bg-white/5"
+                                    : "text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5"
                                     }`}
                             >
                                 Voice
@@ -132,7 +132,7 @@ function TranslationScreen() {
                                 onClick={() => setMode("text")}
                                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === "text"
                                     ? "bg-accent/20 text-accent shadow-sm border border-accent/10"
-                                    : "text-text-muted hover:text-text hover:bg-white/5"
+                                    : "text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5"
                                     }`}
                             >
                                 Text
@@ -141,7 +141,7 @@ function TranslationScreen() {
                     </div>
 
                     {/* Language Selectors */}
-                    <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
+                    <div className="flex items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md">
                         <select
                             value={sourceLang}
                             onChange={(e) => setSourceLang(e.target.value)}
@@ -152,7 +152,7 @@ function TranslationScreen() {
                             ))}
                         </select>
 
-                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-text-muted">
+                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black/10 dark:bg-white/10 text-text-muted">
                             <ArrowRightLeft className="w-4 h-4" />
                         </div>
 
@@ -176,7 +176,7 @@ function TranslationScreen() {
                     {/* Input Area */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Source Card */}
-                        <div className="group bg-white/5 hover:bg-white/[0.07] border border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col transition-all duration-300 shadow-xl shadow-black/20 backdrop-blur-sm">
+                        <div className="group bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/[0.07] border border-black/10 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col transition-all duration-300 shadow-xl shadow-black/20 backdrop-blur-sm">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
                                     {SUPPORTED_LANGUAGES.find(l => l.code === sourceLang)?.name}
@@ -232,7 +232,7 @@ function TranslationScreen() {
                         </div>
 
                         {/* Target Card */}
-                        <div className="relative group bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col overflow-hidden transition-all duration-300 shadow-xl shadow-black/20">
+                        <div className="relative group bg-gradient-to-br from-black/5 dark:from-white/5 to-transparent dark:to-white/[0.02] border border-black/10 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col overflow-hidden transition-all duration-300 shadow-xl shadow-black/20">
                             {/* Decorative Sparkle */}
                             <div className="absolute -top-10 -right-10 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity duration-700 pointer-events-none">
                                 <Sparkles className="w-48 h-48" />
@@ -249,7 +249,7 @@ function TranslationScreen() {
                                                 navigator.clipboard.writeText(translatedText);
                                                 toast.success("Copied to clipboard");
                                             }}
-                                            className="p-1.5 rounded-lg hover:bg-white/10 text-text-muted hover:text-white transition-colors"
+                                            className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-text-muted hover:text-text dark:hover:text-white transition-colors"
                                             title="Copy Translation"
                                         >
                                             <Copy size={16} />

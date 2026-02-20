@@ -16,6 +16,7 @@ export const AccountSettings: React.FC = () => {
         setLicense,
         setPro,
         validateLicense,
+        validateFallbackLicense,
         isLicenseValid
     } = useAuthStore();
 
@@ -54,19 +55,23 @@ export const AccountSettings: React.FC = () => {
 
     const handleActivateLicense = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        // Since we are moving to email-based licensing via Razorpay + Firebase,
-        // we can just re-validate the current user's email.
         if (!userEmail) return;
 
         setLoginLoading(true);
         try {
-            const success = await validateLicense(userEmail);
+            let success = false;
+            if (showLicenseInput && inputLicenseKey.trim()) {
+                success = await validateFallbackLicense(userEmail, inputLicenseKey);
+            } else {
+                success = await validateLicense(userEmail);
+            }
+
             if (success) {
                 toast.success("Pro activated successfully!");
                 setShowLicenseInput(false);
                 setInputLicenseKey("");
             } else {
-                toast.error("No active Pro subscription found for this email.");
+                toast.error(showLicenseInput ? "Invalid license key or not linked to this email." : "No active Pro subscription found for this email.");
             }
         } catch (error) {
             toast.error("Failed to check subscription status");
@@ -234,15 +239,43 @@ export const AccountSettings: React.FC = () => {
                             <p className="text-sm font-medium text-gray-900 dark:text-text">1 / 2 devices used</p>
                         </div>
 
+                        {!isPro && !showLicenseInput && (
+                            <button
+                                onClick={() => setShowLicenseInput(true)}
+                                className="text-sm text-accent hover:underline text-left mt-2 block"
+                            >
+                                Have a license key?
+                            </button>
+                        )}
+
+                        {showLicenseInput && !isPro && (
+                            <form onSubmit={handleActivateLicense} className="space-y-3 mt-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs text-text-muted uppercase tracking-wider font-bold block">License Key</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="text"
+                                                value={inputLicenseKey}
+                                                onChange={(e) => setInputLicenseKey(e.target.value)}
+                                                placeholder="Enter your license key..."
+                                                className="w-full px-3 py-2 text-sm rounded-xl bg-black/5 dark:bg-black/20 border border-black/10 dark:border-white/10 focus:border-accent/40 focus:ring-1 focus:ring-accent/40 outline-none transition-all text-gray-900 dark:text-text"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        )}
+
                         <button
-                            onClick={() => handleActivateLicense()}
-                            disabled={loginLoading}
+                            onClick={(e) => handleActivateLicense(e as any)}
+                            disabled={loginLoading || (showLicenseInput && !inputLicenseKey.trim())}
                             className={`w-full py-3 rounded-xl text-sm font-semibold transition-all ${isPro
                                 ? "bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white"
-                                : "bg-accent text-white shadow-lg shadow-accent/20 hover:brightness-110 active:scale-95"
+                                : "bg-accent text-white shadow-lg shadow-accent/20 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                                 }`}
                         >
-                            {loginLoading ? "Checking..." : (isPro ? "Verify Subscription Sync" : "Refresh Subscription Status")}
+                            {loginLoading ? "Checking..." : (isPro ? "Verify Subscription Sync" : (showLicenseInput ? "Activate License Key" : "Refresh Subscription Status"))}
                         </button>
                     </div>
                 </div>

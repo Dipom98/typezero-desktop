@@ -128,7 +128,7 @@ export const TtsSettings: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Voice Selection */}
-                <div className="mac-card p-6 bg-white/5 border-white/10 backdrop-blur-xl space-y-4">
+                <div className="mac-card p-6 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Sparkles size={18} className="text-accent" />
                         <h3 className="text-sm font-semibold tracking-wide uppercase opacity-60">Voice Model</h3>
@@ -153,7 +153,7 @@ export const TtsSettings: React.FC = () => {
                             value={testText}
                             onChange={(e) => setTestText(e.target.value)}
                             placeholder="Type something to hear how it sounds..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none h-24 placeholder:text-text-muted/50"
+                            className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none h-24 placeholder:text-text-muted/50 text-text"
                         />
                     </div>
 
@@ -176,7 +176,7 @@ export const TtsSettings: React.FC = () => {
                         <button
                             onClick={handleTest}
                             disabled={isTesting || !serviceStatus || (dailyUsage.ttsCharacters >= 1000 && !isPro) || !testText.trim()}
-                            className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 transition-mac active:scale-95 disabled:opacity-50"
+                            className="flex-1 py-3 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 rounded-xl flex items-center justify-center gap-2 transition-mac active:scale-95 disabled:opacity-50 text-text"
                         >
                             {isTesting ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
                             <span className="text-sm font-medium">Speak</span>
@@ -216,17 +216,30 @@ export const TtsSettings: React.FC = () => {
                 </div>
 
                 {/* Speech Settings */}
-                <div className="mac-card p-6 bg-white/5 border-white/10 backdrop-blur-xl space-y-4">
+                <div className="mac-card p-6 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Sliders size={18} className="text-accent" />
                         <h3 className="text-sm font-semibold tracking-wide uppercase opacity-60">Engine Controls</h3>
                     </div>
 
-                    <div className="space-y-6 py-2">
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <label className="text-[13px] text-text-muted">Speaking Speed</label>
-                                <span className="text-xs font-mono text-accent">{settings?.tts_speed || 1.0}x</span>
+                    <div className="space-y-4 py-2">
+                        <div className="flex items-center justify-between p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                            <div className="space-y-0.5 text-left">
+                                <p className="text-sm font-medium">Enable Synthesis</p>
+                                <p className="text-[11px] text-text-muted">Toggle local synthesis</p>
+                            </div>
+                            <button
+                                onClick={() => updateSetting("tts_enabled", !settings?.tts_enabled)}
+                                className={`w-11 h-6 rounded-full transition-all duration-300 relative shadow-inner ${settings?.tts_enabled ? 'bg-accent' : 'bg-black/20 dark:bg-white/10'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${settings?.tts_enabled ? 'left-6' : 'left-1'}`} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3 p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="text-[13px] text-text-muted font-medium">Speaking Speed</label>
+                                <span className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded-md">{settings?.tts_speed || 1.0}x</span>
                             </div>
                             <input
                                 type="range"
@@ -235,21 +248,8 @@ export const TtsSettings: React.FC = () => {
                                 step="0.1"
                                 value={settings?.tts_speed || 1.0}
                                 onChange={(e) => updateSetting("tts_speed", parseFloat(e.target.value))}
-                                className="w-full accent-accent bg-gray-200 dark:bg-white/10 h-1.5 rounded-lg appearance-none cursor-pointer"
+                                className="w-full accent-accent bg-black/10 dark:bg-white/10 h-2 rounded-lg appearance-none cursor-pointer shadow-inner"
                             />
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
-                            <div className="space-y-0.5">
-                                <p className="text-sm font-medium">Enable Synthesis</p>
-                                <p className="text-[11px] text-text-muted">Toggle local synthesis</p>
-                            </div>
-                            <button
-                                onClick={() => updateSetting("tts_enabled", !settings?.tts_enabled)}
-                                className={`w-11 h-6 rounded-full transition-all duration-300 relative ${settings?.tts_enabled ? 'bg-accent' : 'bg-gray-200 dark:bg-white/10'}`}
-                            >
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${settings?.tts_enabled ? 'left-6' : 'left-1'}`} />
-                            </button>
                         </div>
                     </div>
                 </div>

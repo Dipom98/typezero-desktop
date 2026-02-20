@@ -23,6 +23,7 @@ interface AuthState {
     incrementDictation: (seconds: number) => void;
     incrementTts: (chars: number) => void;
     checkAndResetDaily: () => void;
+    validateFallbackLicense: (email: string, licenseKey: string) => Promise<boolean>;
 }
 
 const DAILY_LIMITS = {
@@ -96,6 +97,78 @@ export const useAuthStore = create<AuthState>()(
                     return false;
                 } catch (error) {
                     console.error("Error validating license:", error);
+                    return false;
+                }
+            },
+
+            validateFallbackLicense: async (email: string, licenseKeyParam: string) => {
+                try {
+                    const normalizedEmail = email.toLowerCase();
+                    const trimmedKey = licenseKeyParam.trim();
+                    const userDocRef = doc(db, "users", normalizedEmail);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+
+                        // Check if the provided license matches the one in DB
+                        if ((userData.licenseKey === trimmedKey) || (userData.lemonSqueezyLicenseKey === trimmedKey) || (userData.subscriptionId === trimmedKey) || (userData.razorpaySubscriptionId === trimmedKey) || (userData.stripeSubscriptionId === trimmedKey)) {
+                            // Valid license!
+                            // Check expiration if it exists
+                            if (userData.expiresAt) {
+                                const expiresAt = new Date(userData.expiresAt);
+                                const now = new Date();
+                                if (now > expiresAt) {
+                                    console.log("Subscription expired on", expiresAt);
+                                    set({ isPro: false });
+                                    return false; // Revoked!
+                                }
+                            }
+
+                            set({
+                                isPro: true,
+                                licenseKey: trimmedKey,
+                                userEmail: email,
+                                lastVerifiedAt: new Date().toISOString()
+                            });
+
+                            // Auto-heal the document
+                            await setDoc(userDocRef, { isPro: true, licenseKey: trimmedKey }, { merge: true });
+                            return true;
+                        }
+                    }
+
+                    // If we want to check a 'licenses' collection or similar:
+                    try {
+                        const { collection, query, where, getDocs } = await import("firebase/firestore");
+                        const licensesRef = collection(db, "licenses");
+                        // check matching license key and email
+                        const q = query(licensesRef, where("key", "==", trimmedKey), where("email", "==", normalizedEmail));
+                        const querySnapshot = await getDocs(q);
+
+                        if (!querySnapshot.empty) {
+                            // Check expiration here if needed for the license doc itself
+                            const licenseData = querySnapshot.docs[0].data();
+                            if (licenseData.status === "cancelled" || licenseData.status === "expired") {
+                                return false;
+                            }
+
+                            set({
+                                isPro: true,
+                                licenseKey: trimmedKey,
+                                userEmail: email,
+                                lastVerifiedAt: new Date().toISOString()
+                            });
+                            await setDoc(userDocRef, { isPro: true, licenseKey: trimmedKey, email: normalizedEmail }, { merge: true });
+                            return true;
+                        }
+                    } catch (e) {
+                        console.error("Error checking licenses collection", e);
+                    }
+
+                    return false;
+                } catch (error) {
+                    console.error("Error validating fallback license:", error);
                     return false;
                 }
             },

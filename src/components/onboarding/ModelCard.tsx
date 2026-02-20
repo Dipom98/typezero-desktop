@@ -89,13 +89,13 @@ export const ModelCard: React.FC<ModelCardProps> = ({
         </div>
 
         {/* Model Meta */}
-        <div className="flex items-center gap-4 text-[12px] mac-muted border-t border-white/5 pt-4 mt-1">
+        <div className="flex items-center gap-4 text-[12px] mac-muted border-t border-black/5 dark:border-white/5 pt-4 mt-1">
           <div className="flex items-center gap-1.5">
             <Cpu size={14} className="opacity-60" />
             <span>{(model.size_mb / 1024).toFixed(1)}GB RAM</span>
           </div>
           {model.supported_languages.length > 0 && (
-            <div className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded bg-white/5">
+            <div className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded bg-black/5 dark:bg-white/5">
               <Globe size={12} />
               <span>Multi-lang</span>
             </div>
@@ -110,15 +110,15 @@ export const ModelCard: React.FC<ModelCardProps> = ({
                 onClick={() => onSelect(model.id)}
                 disabled={isActive}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-[13px] transition-all ${isActive
-                  ? "bg-white/5 text-text-muted cursor-default"
-                  : "bg-white/10 hover:bg-accent hover:text-white"
+                  ? "bg-black/5 dark:bg-white/5 text-text-muted cursor-default"
+                  : "bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-accent text-text dark:text-text hover:text-black dark:hover:text-white"
                   }`}
               >
                 {isActive ? "Selected" : "Select Model"}
               </button>
               <button
                 onClick={() => onDelete(model.id)}
-                className="p-2.5 rounded-xl bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-red-500 transition-all"
+                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 text-text-muted hover:bg-red-500/10 hover:text-red-500 transition-all"
                 title="Delete Model"
               >
                 <Trash2 size={16} />
@@ -133,7 +133,7 @@ export const ModelCard: React.FC<ModelCardProps> = ({
                 </span>
                 <span>{progress?.percentage.toFixed(0)}%</span>
               </div>
-              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-black/10 dark:bg-white/5 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-accent transition-all duration-300 ease-out"
                   style={{ width: `${progress?.percentage || 0}%` }}
