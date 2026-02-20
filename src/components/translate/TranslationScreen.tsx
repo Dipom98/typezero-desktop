@@ -71,7 +71,7 @@ function TranslationScreen() {
             console.error("Translation failed:", error);
             const errorMessage = error instanceof Error ? error.message : String(error);
             if (errorMessage.includes("401") || errorMessage.includes("unauthorized") || errorMessage.includes("key")) {
-                toast.error(`Translation failed: Please check your API Key in Settings > Post-Processing.`);
+                toast.error(`Translation failed: Please check your API Key in Settings > Post-Processing. (${errorMessage})`);
             } else if (errorMessage.includes("error sending request for url") || errorMessage.includes("Connection refused") || errorMessage.includes("11434")) {
                 toast.error(`Translation failed: Unable to connect to your local AI model. Please ensure Ollama is running or check your Post-Processing provider settings.`);
             } else {

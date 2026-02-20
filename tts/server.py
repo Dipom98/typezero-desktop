@@ -1,5 +1,30 @@
 import os
 import sys
+import subprocess
+import importlib.util
+
+def install_deps():
+    deps = ["flask", "TTS", "torch", "Pillow", "numpy==1.26.4"]
+    missing = []
+    for dep in deps:
+        pkg = dep.split("==")[0]
+        if importlib.util.find_spec(pkg) is None:
+            missing.append(dep)
+            
+    if missing:
+        print(f"[*] Missing dependencies found. Installing {missing}...", flush=True)
+        try:
+            # Install missing packages
+            subprocess.check_call([sys.executable, "-m", "pip", "install"] + missing, stdout=sys.stdout, stderr=sys.stderr)
+            print("[*] Installation successful. Rebooting script.", flush=True)
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception as e:
+            print(f"[!] Failed to auto-install dependencies: {e}", flush=True)
+            sys.exit(1)
+
+# Ensure dependencies are installed before importing them
+install_deps()
+
 import traceback
 from flask import Flask, request, send_file, make_response
 from TTS.api import TTS

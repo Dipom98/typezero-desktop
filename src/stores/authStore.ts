@@ -52,8 +52,8 @@ export const useAuthStore = create<AuthState>()(
 
             validateLicense: async (email: string) => {
                 try {
-                    // Force lowercase to ensure we match the document ID in Firestore exactly
-                    const normalizedEmail = email.toLowerCase();
+                    // Force lowercase and trim to ensure we match the document ID in Firestore exactly
+                    const normalizedEmail = email.trim().toLowerCase();
                     // Check Firestore for the user document (document ID is the email)
                     const userDocRef = doc(db, "users", normalizedEmail);
                     const userDoc = await getDoc(userDocRef);
@@ -103,7 +103,7 @@ export const useAuthStore = create<AuthState>()(
 
             validateFallbackLicense: async (email: string, licenseKeyParam: string) => {
                 try {
-                    const normalizedEmail = email.toLowerCase();
+                    const normalizedEmail = email.trim().toLowerCase();
                     const trimmedKey = licenseKeyParam.trim();
                     const userDocRef = doc(db, "users", normalizedEmail);
                     const userDoc = await getDoc(userDocRef);
