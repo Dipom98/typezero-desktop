@@ -84,7 +84,7 @@ impl TtsManager {
     pub fn start_health_check(&self) {
         let app_handle = self.app_handle.clone();
         let child_arc = self.child.clone();
-        let manager_clone = Arc::new(self.app_handle.clone()); // We only need app_handle for emitting
+        let _manager_clone = Arc::new(self.app_handle.clone()); // We only need app_handle for emitting
 
         thread::spawn(move || {
             loop {

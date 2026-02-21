@@ -316,6 +316,9 @@ impl TranscriptionManager {
                     })?;
                 LoadedEngine::SenseVoice(engine)
             }
+            _ => {
+                return Err(anyhow::anyhow!("Engine type not supported for transcription."));
+            }
         };
 
         // Update the current engine and model ID

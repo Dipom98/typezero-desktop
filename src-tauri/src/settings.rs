@@ -744,6 +744,7 @@ pub fn get_default_settings() -> AppSettings {
         tts_speed: default_tts_speed(),
         telemetry_enabled: default_telemetry_enabled(),
         beta_channel_enabled: default_beta_channel_enabled(),
+        selected_tts_model: default_tts_model(),
     }
 }
 
