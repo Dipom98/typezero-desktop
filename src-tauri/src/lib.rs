@@ -361,6 +361,7 @@ pub fn run() {
         commands::models::cancel_download,
         commands::models::set_active_model,
         commands::models::get_current_model,
+        commands::models::get_current_tts_model,
         commands::models::get_transcription_model_status,
         commands::models::is_model_loading,
         commands::models::has_any_models_available,
