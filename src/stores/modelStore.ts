@@ -129,7 +129,7 @@ export const useModelStore = create<ModelsStore>()(
 
     loadCurrentTtsModel: async () => {
       try {
-        const result = await (commands as any).getCurrentTtsModel();
+        const result = await commands.getCurrentTtsModel();
         if (result.status === "ok") {
           set({ currentTtsModel: result.data });
         }

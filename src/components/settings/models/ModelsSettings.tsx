@@ -29,7 +29,7 @@ export const ModelsSettings: React.FC = () => {
   const filteredModels = useMemo(() => {
     return models.filter((model) => {
       // Filter by tab
-      const isTTS = (model.engine_type as any) === "Piper" || (model.engine_type as any) === "XTTS";
+      const isTTS = model.engine_type === "Piper" || model.engine_type === "XTTS";
       if (activeTab === "transcription" && isTTS) return false;
       if (activeTab === "speech" && !isTTS) return false;
 
@@ -137,7 +137,7 @@ export const ModelsSettings: React.FC = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {downloadedModels.map((model) => {
-                const isTTS = (model.engine_type as any) === "Piper" || (model.engine_type as any) === "XTTS";
+                const isTTS = model.engine_type === "Piper" || model.engine_type === "XTTS";
                 return (
                   <ModelCard
                     key={model.id}
@@ -161,7 +161,7 @@ export const ModelsSettings: React.FC = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
               {availableModels.map((model) => {
-                const isTTS = (model.engine_type as any) === "Piper" || (model.engine_type as any) === "XTTS";
+                const isTTS = model.engine_type === "Piper" || model.engine_type === "XTTS";
                 return (
                   <ModelCard
                     key={model.id}
