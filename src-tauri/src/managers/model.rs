@@ -445,19 +445,22 @@ impl ModelManager {
                     .models_dir
                     .join(format!("{}.extracting", &model.filename));
 
-                // Clean up any leftover .extracting directories from interrupted extractions
-                // But only if this model is NOT currently being extracted
-                let is_currently_extracting = {
+                // Check if this model is currently being downloaded or extracted
+                let is_active = {
+                    let flags = self.cancel_flags.lock().unwrap();
                     let extracting = self.extracting_models.lock().unwrap();
-                    extracting.contains(&model.id)
+                    flags.contains_key(&model.id) || extracting.contains(&model.id)
                 };
-                if extracting_path.exists() && !is_currently_extracting {
+
+                // Clean up any leftover .extracting directories from interrupted extractions
+                // But only if this model is NOT currently active
+                if extracting_path.exists() && !is_active {
                     warn!("Cleaning up interrupted extraction for model: {}", model.id);
                     let _ = fs::remove_dir_all(&extracting_path);
                 }
 
                 model.is_downloaded = model_path.exists() && model_path.is_dir();
-                model.is_downloading = false;
+                model.is_downloading = is_active;
 
                 // Get partial file size if it exists (for the .tar.gz being downloaded)
                 if partial_path.exists() {
@@ -471,7 +474,10 @@ impl ModelManager {
                 let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
 
                 model.is_downloaded = model_path.exists();
-                model.is_downloading = false;
+                model.is_downloading = {
+                    let flags = self.cancel_flags.lock().unwrap();
+                    flags.contains_key(&model.id)
+                };
 
                 // Get partial file size if it exists
                 if partial_path.exists() {

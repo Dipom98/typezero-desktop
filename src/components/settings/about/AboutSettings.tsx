@@ -154,11 +154,11 @@ export const AboutSettings: React.FC = () => {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => openUrl("https://discord.gg/typezero")}
-              className="font-bold flex items-center gap-2 text-[#5865F2]"
+              onClick={() => openUrl("https://t.me/type_zero_app")}
+              className="font-bold flex items-center gap-2 text-[#0088cc]"
             >
               <ExternalLink size={14} />
-              Join Discord
+              Join Telegram
             </Button>
           </SettingContainer>
 
