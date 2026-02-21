@@ -13,7 +13,8 @@ import {
     Trash2,
     Search,
     Filter,
-    History
+    History,
+    Loader2
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
@@ -55,6 +56,56 @@ function TranslationScreen() {
 
     // History Update Trigger
     const [lastUpdate, setLastUpdate] = useState(Date.now());
+
+    // --- Voice Recording Effect ---
+    useEffect(() => {
+        let isActive = true;
+
+        const handleRecording = async () => {
+            if (isRecording) {
+                try {
+                    const result = await commands.startTranslationCapture();
+                    if (result.status === "error") throw new Error(result.error);
+                    toast.info("Listening...");
+                } catch (e) {
+                    setIsRecording(false);
+                    toast.error("Failed to start recording: " + e);
+                }
+            } else if (!isRecording && isActive && sourceLang) {
+                // Only trigger if we were actually recording and stopped
+                // We'll use a ref or another state if needed, but for now let's just 
+                // check if we have isProcessing or if we should trigger
+            }
+        };
+
+        handleRecording();
+        return () => { isActive = false; };
+    }, [isRecording]);
+
+
+    const toggleRecording = async () => {
+        if (isRecording) {
+            setIsRecording(false);
+            setIsProcessing(true);
+            try {
+                const result = await commands.stopTranslationCapture(targetLang);
+                if (result.status === "ok") {
+                    const [original, translated] = result.data;
+                    setSourceText(original);
+                    setTranslatedText(translated);
+                    addToHistory(original, translated, sourceLang, targetLang);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (e) {
+                toast.error("Translation failed: " + e);
+            } finally {
+                setIsProcessing(false);
+            }
+        } else {
+            setIsRecording(true);
+        }
+    };
 
     const handleTextTranslate = async () => {
         if (!sourceText.trim()) return;
@@ -107,20 +158,20 @@ function TranslationScreen() {
     // --- Render Helpers ---
 
     return (
-        <div className="w-full h-full flex flex-col text-text overflow-hidden">
+        <div className="w-full h-full flex flex-col text-text overflow-hidden bg-background">
             {/* Header Region */}
-            <div className="flex-none p-6 pb-4 z-10">
+            <div className="flex-none p-6 pb-2 z-10">
                 <div className="max-w-4xl mx-auto w-full space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-text dark:text-white">
+                            <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">
                                 Translate
                             </h1>
                             <p className="text-text-muted mt-1 font-medium">Break language barriers with AI.</p>
                         </div>
 
                         {/* Mode Toggle */}
-                        <div className="flex items-center gap-1 p-1.5 bg-white/20 dark:bg-white/5 rounded-2xl border border-white/20 dark:border-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-1 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10 backdrop-blur-sm shadow-sm">
                             <button
                                 onClick={() => setMode("voice")}
                                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === "voice"
@@ -143,28 +194,28 @@ function TranslationScreen() {
                     </div>
 
                     {/* Language Selectors */}
-                    <div className="flex items-center gap-4 bg-white/20 dark:bg-white/5 p-2 rounded-2xl border border-white/20 dark:border-white/5 backdrop-blur-md">
+                    <div className="flex items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-2xl border border-black/5 dark:border-white/10 backdrop-blur-md shadow-sm">
                         <select
                             value={sourceLang}
                             onChange={(e) => setSourceLang(e.target.value)}
-                            className="flex-1 bg-transparent border-none text-sm font-medium text-text focus:outline-none cursor-pointer hover:text-accent transition-colors text-center appearance-none py-2"
+                            className="flex-1 bg-transparent border-none text-sm font-bold text-text focus:outline-none cursor-pointer hover:text-accent transition-colors text-center appearance-none py-2"
                         >
                             {SUPPORTED_LANGUAGES.map(l => (
-                                <option key={l.code} value={l.code} className="bg-background text-text">{l.flag}  {l.name}</option>
+                                <option key={l.code} value={l.code} className="bg-background text-text font-medium">{l.flag}  {l.name}</option>
                             ))}
                         </select>
 
-                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/30 dark:bg-white/10 text-text-muted">
-                            <ArrowRightLeft className="w-4 h-4" />
+                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 text-text-muted">
+                            <ArrowRightLeft className="w-4 h-4 opacity-60" />
                         </div>
 
                         <select
                             value={targetLang}
                             onChange={(e) => setTargetLang(e.target.value)}
-                            className="flex-1 bg-transparent border-none text-sm font-medium text-text focus:outline-none cursor-pointer hover:text-accent transition-colors text-center appearance-none py-2"
+                            className="flex-1 bg-transparent border-none text-sm font-bold text-text focus:outline-none cursor-pointer hover:text-accent transition-colors text-center appearance-none py-2"
                         >
                             {SUPPORTED_LANGUAGES.map(l => (
-                                <option key={l.code} value={l.code} className="bg-background text-text">{l.flag}  {l.name}</option>
+                                <option key={l.code} value={l.code} className="bg-background text-text font-medium">{l.flag}  {l.name}</option>
                             ))}
                         </select>
                     </div>
@@ -172,19 +223,19 @@ function TranslationScreen() {
             </div>
 
             {/* Scrollable Content Region */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
+            <div className="flex-1 overflow-y-auto px-6 pb-6 mt-4">
                 <div className="max-w-4xl mx-auto w-full space-y-8 pb-20">
 
                     {/* Input Area */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Source Card */}
-                        <div className="group bg-white/20 dark:bg-white/5 hover:bg-white/30 dark:hover:bg-white/[0.07] border border-white/20 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col transition-all duration-300 shadow-xl shadow-black/5 backdrop-blur-sm">
+                        <div className="mac-card p-6 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl min-h-[260px] flex flex-col transition-all duration-300">
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
-                                    {SUPPORTED_LANGUAGES.find(l => l.code === sourceLang)?.name}
+                                <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest opacity-60">
+                                    FROM: {SUPPORTED_LANGUAGES.find(l => l.code === sourceLang)?.name}
                                 </span>
                                 {sourceText && (
-                                    <button onClick={() => setSourceText("")} className="text-text-muted hover:text-white transition-colors">
+                                    <button onClick={() => { setSourceText(""); setTranslatedText(""); }} className="text-text-muted hover:text-accent transition-colors p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg">
                                         <RotateCcw size={14} />
                                     </button>
                                 )}
@@ -192,7 +243,7 @@ function TranslationScreen() {
 
                             {mode === "text" ? (
                                 <textarea
-                                    className="flex-1 bg-transparent border-none resize-none focus:outline-none text-xl leading-relaxed p-0 placeholder:text-text-muted/30"
+                                    className="flex-1 bg-transparent border-none resize-none focus:outline-none text-lg leading-relaxed p-0 placeholder:text-text-muted/30 font-medium"
                                     placeholder="Enter text to translate..."
                                     value={sourceText}
                                     onChange={(e) => setSourceText(e.target.value)}
@@ -206,15 +257,15 @@ function TranslationScreen() {
                             ) : (
                                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                                     <button
-                                        className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${isRecording
+                                        className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-500 ${isRecording
                                             ? "bg-red-500/20 text-red-500 shadow-[0_0_30px_-5px_rgba(239,68,68,0.4)] scale-110"
                                             : "bg-accent/10 text-accent hover:bg-accent/20 hover:scale-105"
                                             }`}
-                                        onClick={() => setIsRecording(!isRecording)}
+                                        onClick={toggleRecording}
                                     >
                                         {isRecording ? <StopCircle className="w-10 h-10" /> : <Mic className="w-10 h-10" />}
                                     </button>
-                                    <p className={`text-sm font-medium transition-colors ${isRecording ? "text-red-400 animate-pulse" : "text-text-muted"}`}>
+                                    <p className={`text-sm font-bold transition-colors ${isRecording ? "text-red-500 animate-pulse" : "text-text-muted"}`}>
                                         {isRecording ? "Listening..." : "Click to Speak"}
                                     </p>
                                 </div>
@@ -225,8 +276,9 @@ function TranslationScreen() {
                                     <button
                                         onClick={handleTextTranslate}
                                         disabled={!sourceText.trim() || isProcessing}
-                                        className="bg-accent hover:bg-accent/90 text-white px-6 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-accent/20 active:scale-95"
+                                        className="bg-accent hover:bg-accent/90 text-white px-6 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-accent/20 active:scale-95 flex items-center gap-2"
                                     >
+                                        {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
                                         {isProcessing ? "Translating..." : "Translate"}
                                     </button>
                                 </div>
@@ -234,24 +286,25 @@ function TranslationScreen() {
                         </div>
 
                         {/* Target Card */}
-                        <div className="relative group bg-gradient-to-br from-white/20 dark:from-white/5 to-transparent dark:to-white/[0.02] border border-white/20 dark:border-white/10 rounded-3xl p-6 min-h-[240px] flex flex-col overflow-hidden transition-all duration-300 shadow-xl shadow-black/5">
+                        <div className="relative mac-card p-6 bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl min-h-[260px] flex flex-col overflow-hidden transition-all duration-300">
                             {/* Decorative Sparkle */}
                             <div className="absolute -top-10 -right-10 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity duration-700 pointer-events-none">
                                 <Sparkles className="w-48 h-48" />
                             </div>
 
                             <div className="flex items-center justify-between mb-4 relative z-10">
-                                <span className="text-xs font-bold text-accent uppercase tracking-widest">
-                                    {SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name}
+                                <span className="text-[11px] font-bold text-accent uppercase tracking-widest opacity-60">
+                                    TO: {SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name}
                                 </span>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 relative z-10">
+                                    {isProcessing && <Loader2 size={16} className="text-accent animate-spin" />}
                                     {translatedText && (
                                         <button
                                             onClick={() => {
                                                 navigator.clipboard.writeText(translatedText);
                                                 toast.success("Copied to clipboard");
                                             }}
-                                            className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-text-muted hover:text-text dark:hover:text-white transition-colors"
+                                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-text-muted hover:text-accent transition-colors"
                                             title="Copy Translation"
                                         >
                                             <Copy size={16} />
@@ -260,12 +313,12 @@ function TranslationScreen() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 relative z-10">
+                            <div className="flex-1 relative z-10 overflow-auto scrollbar-hide">
                                 {translatedText ? (
-                                    <p className="text-xl leading-relaxed animate-in fade-in duration-500">{translatedText}</p>
+                                    <p className="text-lg leading-relaxed animate-in fade-in duration-500 font-medium">{translatedText}</p>
                                 ) : (
-                                    <div className="h-full flex items-center justify-center text-text-muted/20 text-sm font-medium italic">
-                                        Translation will appear here
+                                    <div className="h-full flex items-center justify-center text-text-muted/30 text-sm font-bold tracking-tight text-center px-4">
+                                        {isProcessing ? "Crunching translation..." : "Translation will appear here"}
                                     </div>
                                 )}
                             </div>
@@ -276,15 +329,15 @@ function TranslationScreen() {
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                         <div className="flex items-center gap-3 mb-2 px-1">
                             <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-sm">
-                                <History size={20} />
+                                <Sparkles size={20} />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold tracking-tight text-black dark:text-white">Translation Library</h2>
+                                <h2 className="text-xl font-bold tracking-tight text-text">Translation Library</h2>
                                 <p className="text-sm text-text-muted">Manage your translation history</p>
                             </div>
                         </div>
 
-                        <div className="h-px w-full bg-gradient-to-r from-gray-200 dark:from-white/10 via-gray-100 dark:via-white/5 to-transparent mb-8" />
+                        <div className="h-px w-full bg-gradient-to-r from-black/5 dark:from-white/10 via-black/[0.02] dark:via-white/5 to-transparent mb-8" />
 
                         <TranslationLibrary
                             lastUpdate={lastUpdate}

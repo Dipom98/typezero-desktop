@@ -1,6 +1,7 @@
 use tauri::State;
 use crate::managers::translation::TranslationManager;
 use std::sync::Arc;
+use log::{error, info};
 
 #[tauri::command]
 #[specta::specta]
@@ -51,16 +52,31 @@ pub async fn translate_text(
         .unwrap_or_else(|| "gpt-3.5-turbo".to_string());
 
     let prompt = format!(
-        "Translate the following text from {} to {}.\n\nText:\n{}\n\nReturn ONLY the translated text, nothing else.",
+        "Translate the following from {} to {}. Return ONLY the translation.\n\nText: {}",
         source_lang, target_lang, text
     );
 
+    let start = std::time::Instant::now();
     let result = crate::llm_client::send_chat_completion(
         provider,
         api_key,
         &model,
         prompt
-    ).await?;
+    ).await;
+    let duration = start.elapsed();
 
-    result.ok_or_else(|| "No translation returned".to_string())
+    match result {
+        Ok(Some(text)) => {
+            info!("LLM translation completed in {}ms", duration.as_millis());
+            Ok(text)
+        },
+        Ok(None) => Err("No translation returned from provider".to_string()),
+        Err(e) => {
+            // Log if we failed and it was intended to be local
+            if provider.id == "ollama" {
+                error!("Local translation (Ollama) failed ({}ms): {}", duration.as_millis(), e);
+            }
+            Err(format!("Translation failed: {}", e))
+        }
+    }
 }

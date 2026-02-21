@@ -1,7 +1,7 @@
 use anyhow::Result;
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use crate::managers::transcription::TranscriptionManager;
 use crate::managers::history::{HistoryManager, MeetingSegment};
 use crate::managers::audio::AudioRecordingManager;
@@ -10,8 +10,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 use hound::{WavSpec, WavWriter};
-use std::fs::File;
-use std::io::BufWriter;
 
 pub struct MeetingSession {
     pub id: i64,

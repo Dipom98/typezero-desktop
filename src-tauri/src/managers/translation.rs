@@ -1,15 +1,13 @@
 use anyhow::Result;
-use log::{debug, info};
-use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager};
+use log::{info, warn};
+use std::sync::Arc;
+use tauri::AppHandle;
 use crate::managers::transcription::TranscriptionManager;
-use crate::managers::tts::TtsManager;
 use crate::managers::audio::AudioRecordingManager;
 
 pub struct TranslationManager {
     app_handle: AppHandle,
     transcription_manager: Arc<TranscriptionManager>,
-    tts_manager: Arc<TtsManager>,
     audio_manager: Arc<AudioRecordingManager>,
 }
 
@@ -17,13 +15,11 @@ impl TranslationManager {
     pub fn new(
         app_handle: &AppHandle,
         transcription_manager: Arc<TranscriptionManager>,
-        tts_manager: Arc<TtsManager>,
         audio_manager: Arc<AudioRecordingManager>,
     ) -> Result<Self> {
         Ok(Self {
             app_handle: app_handle.clone(),
             transcription_manager,
-            tts_manager,
             audio_manager,
         })
     }
@@ -60,8 +56,9 @@ impl TranslationManager {
             })
         )?;
         
-        // 2. Get translation to English (if target is English)
+        // 2. Get translation
         let translated_text = if target_lang.to_lowercase() == "en" || target_lang.to_lowercase() == "english" {
+             // Use Whisper's native translation to English
              self.transcription_manager.transcribe_with_params(
                 samples,
                 Some(crate::managers::transcription::TranscribeParams {
@@ -70,10 +67,39 @@ impl TranslationManager {
                 })
             )?
         } else {
-             // For other languages, we currently return the original text 
-             // (or would need an external translation service)
-             // The user mainly wants "Voice Translator (Offline)" which usually implies Whisper's English translation capability.
-             original_text.clone()
+             // For other languages, try to use a local LLM if available
+             let settings = crate::settings::get_settings(&self.app_handle);
+             let provider_id = &settings.post_process_provider_id;
+             let provider = settings.post_process_providers.iter().find(|p| &p.id == provider_id);
+             
+             if let Some(p) = provider {
+                 // If it's a local-compatible provider (Ollama) or if the user has a key, try to translate
+                 let api_key = settings.post_process_api_keys.get(provider_id).cloned().unwrap_or_default();
+                 let model = settings.post_process_models.get(provider_id).cloned().unwrap_or_else(|| "llama3".to_string());
+                 
+                 let prompt = format!(
+                     "Translate to {}. Return ONLY translation: {}",
+                     target_lang, original_text
+                 );
+                 
+                 let start = std::time::Instant::now();
+                 let result = crate::llm_client::send_chat_completion(p, api_key, &model, prompt).await;
+                 let duration = start.elapsed();
+
+                 match result {
+                     Ok(Some(translated)) => {
+                         info!("LLM translation completed in {}ms", duration.as_millis());
+                         translated
+                     },
+                     _ => {
+                         warn!("Local LLM translation failed or returned no result after {}ms, falling back", duration.as_millis());
+                         original_text.clone()
+                     }
+                 }
+             } else {
+                 warn!("No translation provider found, falling back to original text");
+                 original_text.clone()
+             }
         };
 
         Ok((original_text, translated_text))

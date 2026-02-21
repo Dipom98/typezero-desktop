@@ -20,6 +20,9 @@ export const AboutSettings: React.FC = () => {
 
   const copyDiagnostics = async () => {
     try {
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard API not available in this browser context.");
+      }
       const result = await commands.generateDiagnosticReport();
       if (result.status === "ok") {
         await navigator.clipboard.writeText(result.data);
@@ -27,37 +30,63 @@ export const AboutSettings: React.FC = () => {
       } else {
         toast.error(`Failed to generate diagnostics: ${result.error}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to copy diagnostics:", error);
-      toast.error("Failed to generate diagnostics");
+      toast.error(`Failed to generate diagnostics: ${error.message || "Unknown error"}`);
     }
   };
 
   const checkForUpdates = async () => {
     try {
-      const update = await check();
+      console.log("[UpdateChecker] Starting update check...");
+      const update = await check().catch(e => {
+        console.error("[UpdateChecker] Check failed:", e);
+        throw e;
+      });
+
       if (update) {
+        console.log("[UpdateChecker] Update found:", update.version);
         toast.message(`Update available: ${update.version}`, {
           description: "Would you like to install it now?",
           action: {
             label: "Install & Restart",
             onClick: async () => {
               try {
+                console.log("[UpdateChecker] Downloading and installing update...");
                 await update.downloadAndInstall();
+                console.log("[UpdateChecker] Installation successful, relaunching...");
                 await relaunch();
-              } catch (e) {
-                console.error(e);
-                toast.error("Failed to install update");
+              } catch (e: any) {
+                console.error("[UpdateChecker] Installation failed:", e);
+                toast.error(`Failed to install update: ${e.message || e}`);
               }
             }
           }
         });
       } else {
+        console.log("[UpdateChecker] No updates found.");
         toast.success("You're using the latest version of TypeZero!");
       }
-    } catch (error) {
-      console.error("Failed to check for updates:", error);
-      toast.success("You're using the latest version of TypeZero!");
+    } catch (error: any) {
+      console.error("[UpdateChecker] Error during update flow:", error);
+      // Don't show success here if it actually failed, show error if it's a real failure
+      if (error?.toString().includes("fetch") || error?.toString().includes("JSON")) {
+        toast.error("Update server unreachable. Please check your internet connection.");
+      } else {
+        toast.success("You're using the latest version of TypeZero!");
+      }
+    }
+  };
+
+  const [versionClicks, setVersionClicks] = useState(0);
+  const [showDebug, setShowDebug] = useState(false);
+
+  const handleVersionClick = () => {
+    const newCount = versionClicks + 1;
+    setVersionClicks(newCount);
+    if (newCount === 5) {
+      setShowDebug(true);
+      toast.success("Diagnostics Panel Unlocked (Dev Mode)");
     }
   };
 
@@ -94,7 +123,10 @@ export const AboutSettings: React.FC = () => {
             grouped={true}
           >
             <div className="flex items-center gap-3">
-              <span className="text-[13px] font-mono bg-text/5 px-2 py-0.5 rounded border border-border/40 text-text/80">
+              <span
+                className="text-[13px] font-mono bg-text/5 px-2 py-0.5 rounded border border-border/40 text-text/80 cursor-default select-none active:scale-95 transition-transform"
+                onClick={handleVersionClick}
+              >
                 v{version}
               </span>
               <Button
@@ -114,6 +146,45 @@ export const AboutSettings: React.FC = () => {
             <Button variant="secondary" size="sm" onClick={copyDiagnostics}>Copy</Button>
           </div>
         </SettingsGroup>
+
+        {showDebug && (
+          <SettingsGroup title="Developer Diagnostics">
+            <div className="mac-card p-6 bg-accent/5 border-accent/20 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-text-muted mb-1">User Agent</p>
+                  <p className="font-mono bg-black/20 p-2 rounded break-all">{navigator.userAgent}</p>
+                </div>
+                <div>
+                  <p className="text-text-muted mb-1">Platform</p>
+                  <p className="font-mono bg-black/20 p-2 rounded">{navigator.platform}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 border-t border-accent/10 pt-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    const result = await commands.getTtsStatus();
+                    toast.info(`TTS Service Running: ${result.status === 'ok' ? result.data : 'error'}`);
+                  }}
+                >
+                  Test TTS Service
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    localStorage.clear();
+                    toast.success("Local storage cleared. Relaunch required.");
+                  }}
+                >
+                  Reset App Data (Nuke)
+                </Button>
+              </div>
+            </div>
+          </SettingsGroup>
+        )}
 
         <SettingsGroup title="Beta Distribution Notice">
           <div className="p-4 rounded-xl bg-orange-500/5 border border-orange-500/20 text-sm space-y-4">

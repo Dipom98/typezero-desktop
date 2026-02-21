@@ -30,17 +30,23 @@ export const AccountSettings: React.FC = () => {
         setLoginLoading(true);
 
         try {
-            // Check Firebase for the email's Pro status
-            const isProUser = await validateLicense(loginEmail);
+            const normalizedEmail = loginEmail.trim().toLowerCase();
+            let isProUser = false;
+            try {
+                isProUser = await validateLicense(normalizedEmail);
+            } catch (syncError) {
+                console.warn("Could not sync with Firebase, logging in locally", syncError);
+                toast.warning("Logged in offline. Syncing will retry later.");
+                setUser(normalizedEmail);
+                return;
+            }
 
             if (isProUser) {
                 toast.success("Logged in & Pro activated!");
             } else {
-                toast.success("Logged in as Free user");
-                setUser(loginEmail); // Fallback to free tier
+                toast.success("Logged in successfully.");
+                setUser(normalizedEmail); // Fallback to free tier
             }
-        } catch (error) {
-            toast.error("Failed to login");
         } finally {
             setLoginLoading(false);
         }
@@ -81,8 +87,8 @@ export const AccountSettings: React.FC = () => {
     };
 
     const licenseActive = isLicenseValid();
-    const dictationLimit = 300;
-    const ttsLimit = 1000;
+    const dictationLimit = 400; // ~1000 words
+    const ttsLimit = 1500;
 
     if (!userEmail) {
         return (

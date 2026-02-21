@@ -27,7 +27,7 @@ pub unsafe fn free_apple_llm_response(_: *mut AppleLLMResponse) {}
 
 // Safe wrapper functions
 pub fn check_apple_intelligence_availability() -> bool {
-    unsafe { is_apple_intelligence_available() == 1 }
+    is_apple_intelligence_available() == 1
 }
 
 pub fn process_text(prompt: &str, max_tokens: i32) -> Result<String, String> {

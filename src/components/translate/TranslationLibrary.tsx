@@ -5,8 +5,13 @@ import {
     Trash2,
     Clock,
     Copy,
-    ArrowRight
+    ArrowRight,
+    Languages,
+    Play,
+    Loader2
 } from "lucide-react";
+import { useSettings } from "../../hooks/useSettings";
+import { commands } from "@/bindings";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -26,6 +31,7 @@ interface TranslationLibraryProps {
 }
 
 export const TranslationLibrary: React.FC<TranslationLibraryProps> = ({ onSelect, lastUpdate }) => {
+    const audioRef = React.useRef<HTMLAudioElement | null>(null);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -63,8 +69,48 @@ export const TranslationLibrary: React.FC<TranslationLibraryProps> = ({ onSelect
 
     const copyText = (text: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        navigator.clipboard.writeText(text);
-        toast.success("Copied to clipboard");
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard");
+        } else {
+            toast.error("Clipboard not available");
+        }
+    };
+
+    const playHistoryItem = async (text: string, lang: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            toast.info("Generating audio...");
+            const result = await commands.speak({ text });
+            if (result.status === "ok") {
+                const blob = new Blob([new Uint8Array(result.data)], { type: "audio/wav" });
+                const url = URL.createObjectURL(blob);
+
+                // Cleanup previous audio if exists
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.src = "";
+                }
+
+                const audio = new Audio(url);
+                audioRef.current = audio;
+
+                audio.play().catch(err => {
+                    console.error("Audio play failed:", err);
+                    toast.error("Audio playback blocked. Please click again.");
+                });
+
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    audioRef.current = null;
+                };
+            } else {
+                toast.error("TTS Failed: " + result.error);
+            }
+        } catch (err) {
+            console.error("TTS play error:", err);
+            toast.error("Failed to play audio");
+        }
     };
 
     const filteredHistory = history.filter(item => {
@@ -110,7 +156,7 @@ export const TranslationLibrary: React.FC<TranslationLibraryProps> = ({ onSelect
             </div>
 
             {filteredHistory.length === 0 ? (
-                <div className="p-16 flex flex-col items-center justify-center opacity-40 bg-white/5 border border-white/10 border-dashed rounded-3xl">
+                <div className="mac-card py-16 flex flex-col items-center justify-center opacity-40 bg-[#1a1a1a]/40 border-dashed">
                     <Clock size={48} className="mb-4" />
                     <p className="text-sm font-medium">No saved translations found</p>
                     <p className="text-xs">Your translation history will appear here</p>
@@ -121,60 +167,67 @@ export const TranslationLibrary: React.FC<TranslationLibraryProps> = ({ onSelect
                         <div
                             key={item.id}
                             onClick={() => onSelect(item)}
-                            className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl p-4 transition-all duration-300 cursor-pointer"
+                            className="group mac-card p-4 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-4 cursor-pointer"
                         >
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 min-w-0 space-y-2">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
-                                            <span className="text-text-muted bg-white/5 px-2 py-0.5 rounded">{item.sourceLang}</span>
-                                            <ArrowRight size={10} className="text-text-muted" />
-                                            <span className="text-accent bg-accent/10 px-2 py-0.5 rounded  border border-accent/10">{item.targetLang}</span>
-                                        </div>
-                                        <span className="text-[10px] font-medium text-text-muted flex items-center gap-1 ml-auto md:ml-0">
-                                            <Clock size={10} />
-                                            {format(new Date(item.timestamp), "MMM d, h:mm a")}
-                                        </span>
-                                    </div>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-accent group-hover:bg-accent group-hover:text-white transition-all">
+                                <Languages size={20} />
+                            </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-xs text-text-muted mb-0.5 font-medium uppercase tracking-wider opacity-70">Original</p>
-                                            <p className="text-sm text-text font-medium leading-relaxed line-clamp-2">{item.sourceText}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-accent mb-0.5 font-medium uppercase tracking-wider opacity-70">Translation</p>
-                                            <p className="text-sm text-text-muted leading-relaxed line-clamp-2">{item.translatedText}</p>
-                                        </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase py-0.5 px-2 bg-accent/10 text-accent rounded-full border border-accent/10">
+                                        <span>{item.sourceLang}</span>
+                                        <ArrowRight size={10} className="mx-0.5" />
+                                        <span>{item.targetLang}</span>
+                                    </div>
+                                    <span className="text-[10px] font-medium text-text-muted flex items-center gap-1">
+                                        <Clock size={10} />
+                                        {format(new Date(item.timestamp), "MMM d, h:mm a")}
+                                    </span>
+                                </div>
+                                <h4 className="text-[13px] font-medium truncate text-white/90 mb-1 leading-tight group-hover:text-white transition-colors">
+                                    {item.sourceText}
+                                </h4>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
+                                        <Copy size={12} className="opacity-50" />
+                                        <span className="truncate max-w-[300px]">{item.translatedText}</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-3 bg-black/20 backdrop-blur-md p-1 rounded-lg border border-white/5">
-                                    <button
-                                        onClick={(e) => toggleFavorite(item.id, e)}
-                                        className={`p-2 rounded-lg transition-colors ${item.isFavorite
-                                            ? "text-amber-400 hover:bg-amber-400/10"
-                                            : "text-text-muted hover:bg-white/10 hover:text-white"
-                                            }`}
-                                        title={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                                    >
-                                        <Star size={16} fill={item.isFavorite ? "currentColor" : "none"} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => copyText(item.translatedText, e)}
-                                        className="p-2 text-text-muted hover:bg-white/10 hover:text-white rounded-lg transition-colors"
-                                        title="Copy translation"
-                                    >
-                                        <Copy size={16} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => deleteEntry(item.id, e)}
-                                        className="p-2 text-text-muted hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-colors"
-                                        title="Delete entry"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
+                            <div className="flex items-center gap-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={(e) => playHistoryItem(item.translatedText, item.targetLang, e)}
+                                    className="p-2 text-accent hover:bg-accent/10 rounded-lg transition-mac"
+                                    title="Play translation"
+                                >
+                                    <Play size={18} fill="currentColor" />
+                                </button>
+                                <button
+                                    onClick={(e) => toggleFavorite(item.id, e)}
+                                    className={`p-2 rounded-lg transition-mac ${item.isFavorite
+                                        ? "text-amber-400 hover:bg-amber-400/10"
+                                        : "text-text-muted hover:bg-white/10 hover:text-white"
+                                        }`}
+                                    title={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                                >
+                                    <Star size={18} fill={item.isFavorite ? "currentColor" : "none"} />
+                                </button>
+                                <button
+                                    onClick={(e) => copyText(item.translatedText, e)}
+                                    className="p-2 text-text-muted hover:bg-white/10 hover:text-white rounded-lg transition-mac"
+                                    title="Copy translation"
+                                >
+                                    <Copy size={18} />
+                                </button>
+                                <button
+                                    onClick={(e) => deleteEntry(item.id, e)}
+                                    className="p-2 text-text-muted hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-mac"
+                                    title="Delete entry"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
                             </div>
                         </div>
                     ))}

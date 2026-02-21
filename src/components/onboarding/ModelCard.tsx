@@ -30,11 +30,9 @@ export const ModelCard: React.FC<ModelCardProps> = ({
   onDownload,
   onDelete,
 }) => {
-  const { isModelDownloading, getDownloadProgress, isModelExtracting } = useModelStore();
-
-  const isDownloading = isModelDownloading(model.id);
-  const isExtracting = isModelExtracting(model.id);
-  const progress = getDownloadProgress(model.id);
+  const isDownloading = useModelStore(state => !!state.downloadingModels[model.id]);
+  const isExtracting = useModelStore(state => !!state.extractingModels[model.id]);
+  const progress = useModelStore(state => state.downloadProgress[model.id]);
 
   const getAccuracyLabel = (score: number) => {
     if (score >= 0.9) return { text: "Studio Grade", color: "text-emerald-500 bg-emerald-500/10" };
@@ -92,7 +90,11 @@ export const ModelCard: React.FC<ModelCardProps> = ({
         <div className="flex items-center gap-4 text-[12px] mac-muted border-t border-black/5 dark:border-white/5 pt-4 mt-1">
           <div className="flex items-center gap-1.5">
             <Cpu size={14} className="opacity-60" />
-            <span>{(model.size_mb / 1024).toFixed(1)}GB RAM</span>
+            <span>
+              {model.size_mb >= 1024
+                ? `${(model.size_mb / 1024).toFixed(1)}GB`
+                : `${model.size_mb}MB`} RAM
+            </span>
           </div>
           {model.supported_languages.length > 0 && (
             <div className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded bg-black/5 dark:bg-white/5">

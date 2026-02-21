@@ -28,8 +28,7 @@ export const MeetingScreen: React.FC = () => {
         try {
             const res = await commands.getMeetings();
             if (res.status === "ok") {
-                // Cast to any to bypass outdated bindings
-                setMeetings(res.data as any as Meeting[]);
+                setMeetings(res.data as Meeting[]);
             }
         } catch (e) {
             console.error("Failed to fetch meetings:", e);

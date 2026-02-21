@@ -262,40 +262,43 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
       layout="stacked"
       grouped={true}
     >
-      <div className="space-y-4">
-        <div className="flex gap-2">
-          <Select
-            value={selectedPromptId || null}
-            options={prompts.map((p: any) => ({
-              value: p.id,
-              label: p.name,
-            }))}
-            onChange={(value: string | null) => handlePromptSelect(value)}
-            placeholder={
-              prompts.length === 0
-                ? t("settings.postProcessing.prompts.noPrompts")
-                : t("settings.postProcessing.prompts.selectPrompt")
-            }
-            disabled={
-              isUpdating("post_process_selected_prompt_id") || isCreating
-            }
-            className="flex-1"
-          />
+      <div className="space-y-6">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Select
+              value={selectedPromptId || null}
+              options={prompts.map((p: any) => ({
+                value: p.id,
+                label: p.name,
+              }))}
+              onChange={(value: string | null) => handlePromptSelect(value)}
+              placeholder={
+                prompts.length === 0
+                  ? t("settings.postProcessing.prompts.noPrompts")
+                  : t("settings.postProcessing.prompts.selectPrompt")
+              }
+              disabled={
+                isUpdating("post_process_selected_prompt_id") || isCreating
+              }
+              className="w-full"
+            />
+          </div>
           <Button
             onClick={handleStartCreate}
             variant="primary"
             size="md"
             disabled={isCreating}
-            className="shrink-0"
+            className="shrink-0 flex items-center gap-2"
           >
+            <RefreshCcw size={14} className={isCreating ? "animate-spin" : ""} />
             {t("settings.postProcessing.prompts.createNew")}
           </Button>
         </div>
 
         {!isCreating && hasPrompts && selectedPrompt && (
-          <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="mac-card p-4 bg-black/5 dark:bg-white/5 space-y-4 animate-in slide-in-from-top-2 duration-200">
             <div className="space-y-1.5 flex flex-col">
-              <label className="text-[12px] font-bold uppercase tracking-wider text-text/40">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 {t("settings.postProcessing.prompts.promptLabel")}
               </label>
               <Input

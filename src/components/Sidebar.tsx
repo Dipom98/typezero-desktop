@@ -19,6 +19,7 @@ import {
   Users,
   MessageSquare
 } from "lucide-react";
+import { toast } from "sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import TypeZeroTextLogo from "./icons/TypeZeroTextLogo";
 import iconUrl from "../assets/icon.png";
@@ -53,6 +54,7 @@ interface SectionConfig {
   icon: React.ComponentType<IconProps>;
   component: React.ComponentType;
   enabled: (settings: any) => boolean;
+  locked?: boolean;
 }
 
 export const SECTIONS_CONFIG = {
@@ -79,6 +81,7 @@ export const SECTIONS_CONFIG = {
     icon: Volume2,
     component: TtsSettings,
     enabled: () => true,
+    locked: true,
   },
   advanced: {
     labelKey: "sidebar.advanced",
@@ -197,8 +200,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </h3>
             <div className="space-y-0.5">
               {group.items.map((key) => {
-                const config = SECTIONS_CONFIG[key as keyof typeof SECTIONS_CONFIG];
-                if (!config || (config as any).enabled() === false) return null;
+                const config = SECTIONS_CONFIG[key] as SectionConfig;
+                if (!config || config.enabled(settings) === false) return null;
 
                 const isActive = activeSection === key;
                 const Icon = config.icon;
@@ -206,7 +209,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <button
                     key={key}
-                    onClick={() => onSectionChange(key as SidebarSection)}
+                    onClick={() => {
+                      if (config.locked) {
+                        toast.info("Coming Soon", {
+                          description: "This feature is currently under maintenance.",
+                          position: "bottom-right",
+                        });
+                        return;
+                      }
+                      onSectionChange(key as SidebarSection);
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive
                       ? "bg-accent/10 text-accent shadow-[inset_0_1px_0_var(--color-border)]"
                       : "text-text-muted hover:bg-black/5 dark:hover:bg-white/5 hover:text-text"

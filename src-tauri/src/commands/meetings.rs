@@ -1,6 +1,5 @@
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 use crate::managers::meetings::MeetingManager;
-use crate::managers::history::MeetingSegment;
 use std::sync::Arc;
 
 #[tauri::command]

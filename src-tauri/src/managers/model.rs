@@ -1,6 +1,6 @@
 use crate::settings::{get_settings, write_settings};
 use anyhow::Result;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -326,9 +326,9 @@ impl ModelManager {
         // --- TTS MODELS ---
 
         available_models.insert(
-            "piper-en-joy-medium".to_string(),
+            "en_US-joy-medium".to_string(),
             ModelInfo {
-                id: "piper-en-joy-medium".to_string(),
+                id: "en_US-joy-medium".to_string(),
                 name: "Speech: Piper Joy (EN)".to_string(),
                 description: "Lightweight neural TTS. High quality, very fast.".to_string(),
                 filename: "en_US-joy-medium.onnx".to_string(),
@@ -343,6 +343,52 @@ impl ModelManager {
                 speed_score: 0.90,
                 supports_translation: false,
                 is_recommended: true,
+                supported_languages: vec!["en".to_string()],
+                is_custom: false,
+            },
+        );
+
+        available_models.insert(
+            "en_US-lessac-high".to_string(),
+            ModelInfo {
+                id: "en_US-lessac-high".to_string(),
+                name: "Speech: Piper Lessac (EN-Studio)".to_string(),
+                description: "Professional studio-quality English voice. Clear and expressive.".to_string(),
+                filename: "en_US-lessac-high.onnx".to_string(),
+                url: Some("https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high/en_US-lessac-high.onnx".to_string()),
+                size_mb: 85,
+                is_downloaded: false,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::Piper,
+                accuracy_score: 0.92,
+                speed_score: 0.80,
+                supports_translation: false,
+                is_recommended: false,
+                supported_languages: vec!["en".to_string()],
+                is_custom: false,
+            },
+        );
+
+        available_models.insert(
+            "en_US-arctic-medium".to_string(),
+            ModelInfo {
+                id: "en_US-arctic-medium".to_string(),
+                name: "Speech: Piper Arctic (Natural)".to_string(),
+                description: "Natural sounding English male voice. Great for long-form content.".to_string(),
+                filename: "en_US-arctic-medium.onnx".to_string(),
+                url: Some("https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/arctic/medium/en_US-arctic-medium.onnx".to_string()),
+                size_mb: 55,
+                is_downloaded: false,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::Piper,
+                accuracy_score: 0.88,
+                speed_score: 0.85,
+                supports_translation: false,
+                is_recommended: false,
                 supported_languages: vec!["en".to_string()],
                 is_custom: false,
             },
@@ -366,7 +412,10 @@ impl ModelManager {
                 speed_score: 0.20,
                 supports_translation: false,
                 is_recommended: false,
-                supported_languages: vec!["en", "de", "fr", "es", "it", "pl", "pt", "tr", "ru", "nl", "cs", "ar", "zh", "hu", "ko", "ja"].into_iter().map(String::from).collect(),
+                supported_languages: vec!["en", "de", "fr", "es", "it", "pl", "pt", "tr", "ru", "nl", "cs", "ar", "zh", "hu", "ko", "ja"]
+                    .into_iter()
+                    .map(String::from)
+                    .collect(),
                 is_custom: false,
             },
         );
@@ -771,6 +820,12 @@ impl ModelManager {
             response.content_length().unwrap_or(0)
         };
 
+        info!("[*] Starting download for {}: Total Size: {} bytes ({} MB)", 
+            model_id, 
+            total_size,
+            total_size as f64 / 1024.0 / 1024.0
+        );
+
         let mut downloaded = resume_from;
         let mut stream = response.bytes_stream();
 
@@ -798,7 +853,7 @@ impl ModelManager {
         };
         info!("Partial file handle acquired for {}", model_id);
 
-        // Emit initial progress
+        // Emit initial progress with safety check for 0 total_size
         let initial_progress = DownloadProgress {
             model_id: model_id.to_string(),
             downloaded,
@@ -806,12 +861,14 @@ impl ModelManager {
             percentage: if total_size > 0 {
                 (downloaded as f64 / total_size as f64) * 100.0
             } else {
-                0.0
+                0.0 // Keep at 0 until we get chunks if total_size is unknown
             },
         };
         let _ = self
             .app_handle
             .emit("model-download-progress", &initial_progress);
+        
+        info!("[*] Emitted initial progress for {}", model_id);
 
         // Throttle progress events to max 10/sec (100ms intervals)
         let mut last_emit = Instant::now();
@@ -844,6 +901,7 @@ impl ModelManager {
             }
 
             let chunk = chunk.map_err(|e| {
+                error!("[!] Stream error during download for {}: {}", model_id, e);
                 // Mark as not downloading on error
                 {
                     let mut models = self.available_models.lock().unwrap();
@@ -854,13 +912,17 @@ impl ModelManager {
                 e
             })?;
 
+            let chunk_len = chunk.len() as u64;
             file.write_all(&chunk)?;
-            downloaded += chunk.len() as u64;
+            downloaded += chunk_len;
 
+            // If total_size was unknown (0), we can update it if we have hints, 
+            // but for now we just track downloaded.
             let percentage = if total_size > 0 {
                 (downloaded as f64 / total_size as f64) * 100.0
             } else {
-                0.0
+                // If total size unknown, just show 0 until complete or use a different indicator
+                0.0 
             };
 
             // Emit progress event (throttled to avoid UI freeze)
@@ -873,6 +935,7 @@ impl ModelManager {
                 };
                 let _ = self.app_handle.emit("model-download-progress", &progress);
                 last_emit = Instant::now();
+                trace!("[*] Download progress for {}: {}/{} bytes", model_id, downloaded, total_size);
             }
         }
 
@@ -880,16 +943,14 @@ impl ModelManager {
         let final_progress = DownloadProgress {
             model_id: model_id.to_string(),
             downloaded,
-            total: total_size,
-            percentage: if total_size > 0 {
-                (downloaded as f64 / total_size as f64) * 100.0
-            } else {
-                100.0
-            },
+            total: downloaded, // Use actual downloaded size as total if it was unknown
+            percentage: 100.0,
         };
         let _ = self
             .app_handle
             .emit("model-download-progress", &final_progress);
+
+        info!("[+] Download completed for {}. Total: {} bytes", model_id, downloaded);
 
         file.flush()?;
         drop(file); // Ensure file is closed before moving

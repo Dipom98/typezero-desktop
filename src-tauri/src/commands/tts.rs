@@ -1,13 +1,19 @@
 use crate::managers::tts::TtsManager;
 use crate::settings::get_settings;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State, Manager};
 use serde::{Deserialize, Serialize};
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_tts_status(tts_manager: State<'_, Arc<TtsManager>>) -> Result<bool, String> {
     Ok(tts_manager.is_running())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_tts_diagnostics(app: AppHandle) -> Result<crate::managers::tts::TtsDiagnostics, String> {
+    Ok(TtsManager::get_python_diagnostics(&app))
 }
 
 #[derive(Serialize, Deserialize, specta::Type)]
@@ -78,13 +84,24 @@ pub async fn speak(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_tts_voices() -> Result<Vec<String>, String> {
-    // These are typical Coqui TTS voice IDs for the default bundled VCTK model
-    Ok(vec![
-        "p225".to_string(),
-        "p226".to_string(),
-        "p227".to_string(),
-        "p228".to_string(),
-        "p229".to_string(),
-    ])
+pub async fn get_tts_voices(app: AppHandle) -> Result<Vec<String>, String> {
+    let settings = get_settings(&app);
+    let model_manager = app.state::<Arc<crate::managers::model::ModelManager>>();
+    let mut voices = Vec::new();
+
+    // If a Piper model is selected and downloaded, use it
+    if !settings.selected_tts_model.is_empty() {
+        if let Some(model) = model_manager.get_model_info(&settings.selected_tts_model) {
+            if model.is_downloaded {
+                voices.push(model.id.clone());
+            }
+        }
+    }
+
+    // Always include system default
+    if voices.is_empty() {
+        voices.push("system_default".to_string());
+    }
+
+    Ok(voices)
 }

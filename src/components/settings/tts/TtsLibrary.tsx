@@ -10,8 +10,10 @@ import {
     Filter,
     MessageSquare,
     User,
-    ChevronRight
+    ChevronRight,
+    Loader2
 } from "lucide-react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { commands } from "../../../bindings";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -86,27 +88,38 @@ export const TtsLibrary: React.FC = () => {
         try {
             if (audio) {
                 audio.pause();
+                audio.src = ""; // Clear src to stop loading
+                audio.load();
             }
 
             const pathResult = await commands.getAudioFilePath(item.file_name as string);
             if (pathResult.status === "ok") {
-                // Tauri convertFileSrc is needed for local files, but assuming we might need to use a custom protocol or handle it.
-                // For simplicity in this env, we'll try to fetch or use a direct path if supported.
-                // In a real tauri app, you'd use convertFileSrc(pathResult.data)
+                const assetUrl = convertFileSrc(pathResult.data as string);
+                console.log("Playing local audio from:", assetUrl);
 
-                // Constructing a temporary URL for the audio
-                const newAudio = new Audio(`https://tauri.localhost/${pathResult.data}`); // Placeholder for tauri file protocol
-
-                // Actual tauri implementation would be:
-                // import { convertFileSrc } from '@tauri-apps/api/core';
-                // const url = convertFileSrc(pathResult.data);
-                // const newAudio = new Audio(url);
-
+                const newAudio = new Audio(assetUrl);
                 setAudio(newAudio);
                 setPlayingId(item.id);
 
-                newAudio.play();
-                newAudio.onended = () => setPlayingId(null);
+                newAudio.play().catch(err => {
+                    console.error("Playback error:", err);
+                    if (err.name !== 'AbortError') {
+                        toast.error("Playback failed");
+                    }
+                    setPlayingId(null);
+                });
+
+                newAudio.onended = () => {
+                    setPlayingId(null);
+                    setAudio(null);
+                };
+
+                newAudio.onerror = (e) => {
+                    console.error("Audio error:", e);
+                    toast.error("Audio file not found or corrupted");
+                    setPlayingId(null);
+                    setAudio(null);
+                };
             }
         } catch (e) {
             toast.error("Failed to play audio");
@@ -147,8 +160,8 @@ export const TtsLibrary: React.FC = () => {
                     <button
                         onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-mac text-sm ${showFavoritesOnly
-                                ? "bg-accent/10 border-accent/20 text-accent"
-                                : "bg-white/5 border-white/10 text-text-muted hover:bg-white/10"
+                            ? "bg-accent/10 border-accent/20 text-accent"
+                            : "bg-white/5 border-white/10 text-text-muted hover:bg-white/10"
                             }`}
                     >
                         <Star size={16} fill={showFavoritesOnly ? "currentColor" : "none"} />
@@ -183,8 +196,8 @@ export const TtsLibrary: React.FC = () => {
                             <button
                                 onClick={() => playAudio(item)}
                                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${playingId === item.id
-                                        ? "bg-accent text-white shadow-lg shadow-accent/20"
-                                        : "bg-white/10 text-accent group-hover:bg-accent group-hover:text-white"
+                                    ? "bg-accent text-white shadow-lg shadow-accent/20"
+                                    : "bg-white/10 text-accent group-hover:bg-accent group-hover:text-white"
                                     }`}
                             >
                                 {playingId === item.id ? <Pause size={20} fill="currentColor" /> : <Play size={20} className="ml-1" fill="currentColor" />}
@@ -220,8 +233,8 @@ export const TtsLibrary: React.FC = () => {
                                 <button
                                     onClick={() => toggleFavorite(item.id)}
                                     className={`p-2 rounded-lg transition-mac ${item.is_favorite
-                                            ? "text-amber-400 hover:bg-amber-400/10"
-                                            : "text-text-muted hover:bg-white/10 hover:text-white"
+                                        ? "text-amber-400 hover:bg-amber-400/10"
+                                        : "text-text-muted hover:bg-white/10 hover:text-white"
                                         }`}
                                     title={item.is_favorite ? "Remove from favorites" : "Add to favorites"}
                                 >

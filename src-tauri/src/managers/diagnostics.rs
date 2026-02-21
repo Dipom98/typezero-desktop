@@ -1,6 +1,6 @@
 use sysinfo::{System, Disks};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use std::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize, specta::Type)]

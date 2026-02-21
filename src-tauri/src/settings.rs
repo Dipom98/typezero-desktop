@@ -797,6 +797,7 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
                 if updated {
                     debug!("Settings updated with new bindings");
                     store.set("settings", serde_json::to_value(&settings).unwrap());
+                    let _ = store.save();
                 }
 
                 settings
@@ -806,17 +807,20 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
                 // Fall back to default settings if parsing fails
                 let default_settings = get_default_settings();
                 store.set("settings", serde_json::to_value(&default_settings).unwrap());
+                let _ = store.save();
                 default_settings
             }
         }
     } else {
         let default_settings = get_default_settings();
         store.set("settings", serde_json::to_value(&default_settings).unwrap());
+        let _ = store.save();
         default_settings
     };
 
     if ensure_post_process_defaults(&mut settings) {
         store.set("settings", serde_json::to_value(&settings).unwrap());
+        let _ = store.save();
     }
 
     settings
@@ -831,16 +835,19 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         serde_json::from_value::<AppSettings>(settings_value).unwrap_or_else(|_| {
             let default_settings = get_default_settings();
             store.set("settings", serde_json::to_value(&default_settings).unwrap());
+            let _ = store.save();
             default_settings
         })
     } else {
         let default_settings = get_default_settings();
         store.set("settings", serde_json::to_value(&default_settings).unwrap());
+        let _ = store.save();
         default_settings
     };
 
     if ensure_post_process_defaults(&mut settings) {
         store.set("settings", serde_json::to_value(&settings).unwrap());
+        let _ = store.save();
     }
 
     settings
@@ -852,6 +859,7 @@ pub fn write_settings(app: &AppHandle, settings: AppSettings) {
         .expect("Failed to initialize store");
 
     store.set("settings", serde_json::to_value(&settings).unwrap());
+    let _ = store.save();
 }
 
 pub fn get_bindings(app: &AppHandle) -> HashMap<String, ShortcutBinding> {

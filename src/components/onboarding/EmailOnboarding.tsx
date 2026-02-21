@@ -26,24 +26,26 @@ export const EmailOnboarding: React.FC<EmailOnboardingProps> = ({ onNext }) => {
         setIsLoading(true);
         try {
             // Force the store to update the email immediately
-            const normalizedEmail = email.toLowerCase();
+            const normalizedEmail = email.toLowerCase().trim();
             useAuthStore.getState().setUser(normalizedEmail);
 
             // validateLicense will check if the user is Pro, and if not, 
-            // will silently create a new free user record in Firestore.
+            // will create a new free user record in Firestore.
+            // THIS WILL NOW THROW IF SYNC FAILS.
             const isPro = await validateLicense(normalizedEmail);
 
             if (isPro) {
                 toast.success("Welcome back! Your Pro subscription is active.");
             } else {
-                toast.success("Free account ready to use!");
+                toast.success("Account registered successfully.");
             }
 
-            // Proceed to the next step
+            // Proceed to the next step ONLY if the above didn't throw
             onNext();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to register email:", error);
-            toast.error("Network error. Please try again.");
+            toast.warning("Created offline account. Syncing will retry later.");
+            onNext(); // Proceed anyway so user isn't locked out of the app
         } finally {
             setIsLoading(false);
         }

@@ -14,6 +14,7 @@ export const TtsSettings: React.FC = () => {
     const [voices, setVoices] = useState<string[]>([]);
     const [isTesting, setIsTesting] = useState(false);
     const [serviceStatus, setServiceStatus] = useState<boolean | null>(null);
+    const [diagnostics, setDiagnostics] = useState<any>(null);
     const [testText, setTestText] = useState("Hello, this is a test of TypeZero local speech synthesis.");
     const { dailyUsage, checkAndResetDaily, isPro } = useAuthStore();
 
@@ -27,6 +28,15 @@ export const TtsSettings: React.FC = () => {
             if (result.status === "ok") {
                 setServiceStatus(result.data);
                 if (manual) toast.success(`TTS Service is ${result.data ? "Active" : "Inactive"}`);
+
+                if (!result.data) {
+                    const diag = await commands.getTtsDiagnostics();
+                    if (diag.status === "ok") {
+                        setDiagnostics(diag.data);
+                    }
+                } else {
+                    setDiagnostics(null);
+                }
             }
         } catch (e) {
             console.error("Failed to check service status:", e);
@@ -52,45 +62,66 @@ export const TtsSettings: React.FC = () => {
         const interval = setInterval(() => checkStatus(false), 5000);
         return () => clearInterval(interval);
     }, []);
+    const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
     const handleTest = async () => {
-        if (isTesting) return;
-        setIsTesting(true);
-        try {
-            const result = await commands.speak({ text: testText });
-            if (result.status === "ok") {
-                console.log(`Received TTS data: ${result.data.length} bytes`);
-                const blob = new Blob([new Uint8Array(result.data)], { type: "audio/wav" });
-                const url = URL.createObjectURL(blob);
-                const audio = new Audio(url);
+        if (isTesting) {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+            setIsTesting(false);
+            return;
+        }
 
-                audio.play().then(() => {
-                    console.log("Audio playback started");
-                }).catch(e => {
-                    console.error("Audio playback failed:", e);
-                    toast.error("Playback failed: " + e.message);
+        try {
+            setIsTesting(true);
+            const result = await commands.speak({ text: testText });
+
+            if (result.status === "ok") {
+                const uint8Array = new Uint8Array(result.data);
+                const blob = new Blob([uint8Array], { type: "audio/wav" });
+                const url = URL.createObjectURL(blob);
+
+                // Clean up previous audio
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.src = "";
+                }
+
+                const newAudio = new Audio(url);
+                audioRef.current = newAudio;
+
+                newAudio.play().then(() => {
+                    console.log("Audio playback started successfully");
+                }).catch((e: any) => {
+                    if (e.name !== 'AbortError') {
+                        console.error("Audio.play() failed:", e);
+                        toast.error("Audio playback failed: " + e.message);
+                    }
                     setIsTesting(false);
                 });
 
-                audio.onended = () => {
+                newAudio.onended = () => {
                     setIsTesting(false);
                     URL.revokeObjectURL(url);
+                    audioRef.current = null;
                 };
 
-                audio.onerror = (e) => {
+                newAudio.onerror = (e) => {
                     console.error("Audio element error:", e);
-                    toast.error("Audio error occurred during playback");
+                    toast.error("Audio playback error occurred");
                     setIsTesting(false);
                     URL.revokeObjectURL(url);
+                    audioRef.current = null;
                 };
             } else {
-                console.error("Test speech failed:", result.error);
-                toast.error("Speech generation failed: " + result.error);
+                toast.error("TTS generation failed: " + result.error);
                 setIsTesting(false);
             }
-        } catch (e) {
-            console.error("Test speech exception:", e);
-            toast.error("An error occurred: " + e);
+        } catch (error) {
+            console.error("handleTest crash:", error);
+            toast.error("An unexpected error occurred during playback");
             setIsTesting(false);
         }
     };
@@ -112,7 +143,7 @@ export const TtsSettings: React.FC = () => {
                         className="p-2 hover:bg-white/10 rounded-full transition-mac"
                         title="Refresh Status"
                     >
-                        <Sparkles size={16} className="text-text-muted" />
+                        <RefreshCcw size={16} className={`text-text-muted ${!serviceStatus ? 'animate-spin' : ''}`} />
                     </button>
                     <div className={`px-4 py-2 rounded-full border flex items-center gap-2 transition-mac ${serviceStatus
                         ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
@@ -125,6 +156,27 @@ export const TtsSettings: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Diagnostics Panel for when service is failing */}
+            {!serviceStatus && diagnostics && (
+                <div className="mac-card p-4 bg-amber-500/5 border-amber-500/10 text-xs space-y-2 mb-4 animate-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 font-bold text-amber-500 mb-1">
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>ENVIRONMENT DIAGNOSTICS</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono opacity-80">
+                        <span>Python Path:</span> <span className="text-right truncate">{diagnostics.python_path || "None"}</span>
+                        <span>Python Exists:</span> <span className="text-right font-bold">{diagnostics.python_exists ? "YES" : "NO"}</span>
+                        <span>Python Version:</span> <span className="text-right">{diagnostics.python_version || "Unknown"}</span>
+                        <span>Server Script:</span> <span className="text-right font-bold">{diagnostics.server_script_exists ? "FOUND" : "NOT FOUND"}</span>
+                    </div>
+                    {!diagnostics.python_exists && (
+                        <p className="text-[11px] mt-2 italic text-amber-500/80 p-2 bg-amber-500/10 rounded-lg">
+                            Local environment `tts_env` not found. Please ensure Python dependencies are installed.
+                        </p>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Voice Selection */}

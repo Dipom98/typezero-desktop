@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use log::{debug, error, info};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
@@ -11,6 +11,15 @@ use tauri::{AppHandle, Manager, path::BaseDirectory, Emitter};
 pub struct TtsManager {
     child: Arc<Mutex<Option<Child>>>,
     app_handle: AppHandle,
+}
+
+#[derive(serde::Serialize, specta::Type)]
+pub struct TtsDiagnostics {
+    pub python_path: String,
+    pub python_exists: bool,
+    pub python_version: Option<String>,
+    pub server_script_resolved: bool,
+    pub server_script_exists: bool,
 }
 
 impl TtsManager {
@@ -28,28 +37,41 @@ impl TtsManager {
         Ok(manager)
     }
 
+    pub fn get_python_diagnostics(app_handle: &AppHandle) -> TtsDiagnostics {
+        let python_path = Self::get_python_command();
+        let path_exists = Path::new(&python_path).exists();
+        
+        let mut python_version = None;
+        if path_exists {
+            if let Ok(output) = Command::new(&python_path).arg("--version").output() {
+                python_version = Some(String::from_utf8_lossy(&output.stdout).trim().to_string());
+            }
+        }
+
+        let tts_path = app_handle.path().resolve("tts/server.py", BaseDirectory::Resource).ok();
+        
+        TtsDiagnostics {
+            python_path,
+            python_exists: path_exists,
+            python_version,
+            server_script_resolved: tts_path.is_some(),
+            server_script_exists: tts_path.map(|p| p.exists()).unwrap_or(false),
+        }
+    }
+
     fn get_python_command() -> String {
         // Log current directory and executable path to help debug
         if let Ok(cwd) = std::env::current_dir() {
-            info!("TTS Manager CWD: {:?}", cwd);
+            debug!("TTS Manager CWD: {:?}", cwd);
         }
-        if let Ok(exe) = std::env::current_exe() {
-            info!("TTS Manager Executable: {:?}", exe);
-        }
-
-        // Check for local venv (development) - try multiple common locations
-        // We look for tts_env in:
-        // 1. Current directory
-        // 2. Parent directory (if running from src-tauri or target/debug)
-        // 3. Two levels up
-        // 4. Three levels up
+        
         let possible_roots = vec![
             ".",
+            "src-tauri",
             "..",
+            "../src-tauri",
             "../..",
             "../../..",
-            "src-tauri",
-            "../src-tauri",
         ];
 
         let env_dir = "tts_env";
@@ -64,14 +86,12 @@ impl TtsManager {
             if path.exists() {
                 if let Ok(abs_path) = std::fs::canonicalize(&path) {
                     if let Some(p) = abs_path.to_str() {
-                        info!("Found python at: {}", p);
+                        debug!("Found tts_env python at: {}", p);
                         return p.to_string();
                     }
                 }
             }
         }
-
-        info!("No local venv found in common locations, falling back to system python");
 
         // Fallback to system python
         if cfg!(target_os = "windows") {
@@ -208,12 +228,35 @@ impl TtsManager {
         let app_handle = self.app_handle.clone();
         let child_arc = self.child.clone();
 
-        // Check if service is already running
+        // Check if service is already running in our handle
         if child_arc.lock().unwrap().is_some() {
             return Ok(());
         }
 
         thread::spawn(move || {
+            // Pre-emptive cleanup: if port 5002 is busy, try to free it
+            // This handles zombie processes from previous crashes
+            #[cfg(unix)]
+            {
+                let output = Command::new("lsof")
+                    .arg("-i")
+                    .arg(":5002")
+                    .arg("-t")
+                    .output();
+                
+                if let Ok(output) = output {
+                    let pids = String::from_utf8_lossy(&output.stdout);
+                    for pid in pids.lines() {
+                        if let Ok(p) = pid.parse::<i32>() {
+                            if p != std::process::id() as i32 {
+                                info!("Cleaning up zombie TTS process: {}", p);
+                                let _ = Command::new("kill").arg("-9").arg(pid).status();
+                            }
+                        }
+                    }
+                }
+            }
+
             let mut tts_path = match app_handle.path().resolve("tts/server.py", BaseDirectory::Resource) {
                 Ok(path) => path,
                 Err(e) => {
@@ -243,8 +286,6 @@ impl TtsManager {
                 }
             }
 
-            // In production, we might want to check for a bundled python or sidecar
-            // For now, we assume python3 is in PATH
             info!("Starting TTS service at {:?}", tts_path);
 
             let mut cmd = Command::new(Self::get_python_command());
@@ -257,7 +298,33 @@ impl TtsManager {
 
             match cmd.spawn()
             {
-                Ok(child) => {
+                Ok(mut child) => {
+                    // Capture stdout for logging
+                    if let Some(stdout) = child.stdout.take() {
+                        thread::spawn(move || {
+                            use std::io::{BufRead, BufReader};
+                            let reader = BufReader::new(stdout);
+                            for line in reader.lines() {
+                                if let Ok(line) = line {
+                                    info!("[TTS Service] {}", line);
+                                }
+                            }
+                        });
+                    }
+
+                    // Capture stderr for logging errors
+                    if let Some(stderr) = child.stderr.take() {
+                        thread::spawn(move || {
+                            use std::io::{BufRead, BufReader};
+                            let reader = BufReader::new(stderr);
+                            for line in reader.lines() {
+                                if let Ok(line) = line {
+                                    error!("[TTS Service Error] {}", line);
+                                }
+                            }
+                        });
+                    }
+
                     *child_arc.lock().unwrap() = Some(child);
                     info!("TTS service started successfully");
                 }

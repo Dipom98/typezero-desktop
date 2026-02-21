@@ -49,11 +49,13 @@ function App() {
 
   const userEmail = useAuthStore((state) => state.userEmail);
   const validateLicense = useAuthStore((state) => state.validateLicense);
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const hasValidatedAccount = useRef(false);
 
   useEffect(() => {
+    initializeAuth();
     checkOnboardingStatus();
-  }, []);
+  }, [initializeAuth]);
 
   useEffect(() => {
     // Validate pro status in background on app start once hydration provides the email
@@ -77,7 +79,9 @@ function App() {
 
       if (needsRevalidation) {
         console.log("🔄 App started - validating pro status for:", userEmail);
-        validateLicense(userEmail);
+        validateLicense(userEmail).catch(e => {
+          console.warn("⚠️ Background license sync failed (offline or blocked):", e);
+        });
       }
     }
   }, [userEmail, validateLicense]);

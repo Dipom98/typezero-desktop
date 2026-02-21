@@ -156,7 +156,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
         TranslationManager::new(
             app_handle,
             transcription_manager.clone(),
-            tts_manager.clone(),
             recording_manager.clone(),
         )
         .expect("Failed to initialize translation manager"),
@@ -404,6 +403,7 @@ pub fn run() {
         commands::diagnostics::generate_diagnostic_report,
         commands::demo::seed_demo_content,
         commands::tts::get_tts_status,
+        commands::tts::get_tts_diagnostics,
         commands::tts::speak,
         commands::tts::get_tts_voices,
         helpers::clamshell::is_laptop,
