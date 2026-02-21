@@ -82,6 +82,8 @@ jobs:
       - name: Setup Bun (standard)
         if: ${{ !(contains(inputs.platform, 'windows') && contains(inputs.target, 'aarch64')) }}
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       # Bun does not fully support Windows ARM64 yet, so we pin the baseline build.
       # See https://github.com/oven-sh/bun/issues/9824 for details.
