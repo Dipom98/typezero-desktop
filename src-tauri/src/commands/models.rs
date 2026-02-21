@@ -108,6 +108,13 @@ pub async fn get_current_model(app_handle: AppHandle) -> Result<String, String> 
 
 #[tauri::command]
 #[specta::specta]
+pub async fn get_current_tts_model(app_handle: AppHandle) -> Result<String, String> {
+    let settings = get_settings(&app_handle);
+    Ok(settings.selected_tts_model)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn get_transcription_model_status(
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
 ) -> Result<Option<String>, String> {

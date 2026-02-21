@@ -17,6 +17,7 @@ export const ModelsSettings: React.FC = () => {
   const {
     models,
     currentModel,
+    currentTtsModel,
     downloadingModels,
     downloadProgress,
     loading,
@@ -135,16 +136,19 @@ export const ModelsSettings: React.FC = () => {
               Installed Models
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {downloadedModels.map((model) => (
-                <ModelCard
-                  key={model.id}
-                  model={model}
-                  isActive={currentModel === model.id}
-                  onSelect={handleModelSelect}
-                  onDownload={downloadModel}
-                  onDelete={handleModelDelete}
-                />
-              ))}
+              {downloadedModels.map((model) => {
+                const isTTS = (model.engine_type as any) === "Piper" || (model.engine_type as any) === "XTTS";
+                return (
+                  <ModelCard
+                    key={model.id}
+                    model={model}
+                    isActive={isTTS ? currentTtsModel === model.id : currentModel === model.id}
+                    onSelect={handleModelSelect}
+                    onDownload={downloadModel}
+                    onDelete={handleModelDelete}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
@@ -156,16 +160,19 @@ export const ModelsSettings: React.FC = () => {
               Available to Download
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
-              {availableModels.map((model) => (
-                <ModelCard
-                  key={model.id}
-                  model={model}
-                  isActive={currentModel === model.id}
-                  onSelect={handleModelSelect}
-                  onDownload={downloadModel}
-                  onDelete={handleModelDelete}
-                />
-              ))}
+              {availableModels.map((model) => {
+                const isTTS = (model.engine_type as any) === "Piper" || (model.engine_type as any) === "XTTS";
+                return (
+                  <ModelCard
+                    key={model.id}
+                    model={model}
+                    isActive={isTTS ? currentTtsModel === model.id : currentModel === model.id}
+                    onSelect={handleModelSelect}
+                    onDownload={downloadModel}
+                    onDelete={handleModelDelete}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
